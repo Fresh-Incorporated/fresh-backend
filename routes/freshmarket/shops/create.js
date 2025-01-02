@@ -1,5 +1,6 @@
 'use strict'
 
+const {uploadToS3} = require("../../../utils/s3Util");
 module.exports = async function (fastify, opts) {
     fastify.addHook('onRequest', async (request, reply) => {
         try {
@@ -15,6 +16,7 @@ module.exports = async function (fastify, opts) {
     })
 
     fastify.post('/create', async function (request, reply) {
+        const file = await request.file({limits: { fileSize: 2 * 1024 * 1024 }}); // 2 MB
         const User = fastify.sequelize.model('User');
         const Shop = fastify.sequelize.model('Shop');
 
@@ -39,8 +41,27 @@ module.exports = async function (fastify, opts) {
             return reply.status(402).send({message: "Недостаточно средств. Не хватает: " + (price - user.balance)});
         }
 
-        // here
+        try {
+            // Загрузка файла в S3
+            const fileUrl = await uploadToS3(file, process.env.S3_BUCKET_NAME, 'fresh/market/shop_icon');
 
-        return reply.status(200).send(user);
+            // Создание записи магазина
+            const newShop = await Shop.create({
+                ownerId: request.user.id,
+                name: file.fields.name.value,
+                description: file.fields.description.value,
+                icon: fileUrl,
+            });
+
+            await user.decrement({balance: price})
+
+            return reply.status(200).send({
+                message: 'Магазин успешно создан.',
+                shop: newShop,
+            });
+        } catch (err) {
+            console.error(err);
+            return reply.status(500).send({ message: 'Ошибка при создании магазина.' });
+        }
     })
 }
