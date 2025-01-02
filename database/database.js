@@ -1,5 +1,9 @@
 async function setupDatabase(fastify) {
     const UserModel = await require('./models/User')(fastify);
+    const ShopModel = await require('./models/Shop')(fastify);
+
+    UserModel.hasMany(ShopModel, {foreignKey: 'ownerId'});
+    ShopModel.belongsTo(UserModel, {foreignKey: 'ownerId', as: 'owner'});
 
     fastify.sequelize.sync({force: false})
         .then(async () => {
