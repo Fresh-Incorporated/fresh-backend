@@ -1,22 +1,21 @@
 'use strict'
 
-const {uploadToS3} = require("../../../utils/s3Util");
+const { uploadToS3 } = require("../../../utils/s3Util");
 module.exports = async function (fastify, opts) {
     fastify.addHook('onRequest', async (request, reply) => {
         try {
-            const accessToken = request.cookies.access_token
+            const accessToken = request.cookies.access_token;
             if (!accessToken) {
-                return reply.status(401).send({ error: 'Missing access token' })
+                return reply.status(401).send({ error: 'Missing access token' });
             }
 
-            request.user = fastify.jwt.verify(accessToken)
+            request.user = fastify.jwt.verify(accessToken);
         } catch (err) {
-            reply.status(401).send({ error: 'Unauthorized' })
+            reply.status(401).send({ error: 'Unauthorized' });
         }
-    })
+    });
 
     fastify.post('/create', async function (request, reply) {
-        const file = await request.file({limits: { fileSize: 2 * 1024 * 1024 }}); // 2 MB
         const User = fastify.sequelize.model('User');
         const Shop = fastify.sequelize.model('Shop');
 
@@ -24,36 +23,52 @@ module.exports = async function (fastify, opts) {
             where: {
                 id: request.user.id
             },
-            attributes: {exclude: ['updatedAt']},
-        })
+            attributes: { exclude: ['updatedAt'] },
+        });
 
         if (!user) {
             return reply.status(400).send({
-                message: "Пользователь не найден.."
+                message: "Пользователь не найден."
             });
         }
 
-        const shops = await Shop.findAll({where: {ownerId: request.user.id}});
+        const shops = await Shop.findAll({ where: { ownerId: request.user.id } });
 
         const price = 16 + Math.pow(16, shops.length) * shops.length;
 
         if (user.balance < price) {
-            return reply.status(402).send({message: "Недостаточно средств. Не хватает: " + (price - user.balance)});
+            return reply.status(402).send({ message: "Недостаточно средств. Не хватает: " + (price - user.balance) });
+        }
+
+        let fileUrl = process.env.DEFAULT_SHOP_ICON; // Путь по умолчанию
+
+        try {
+            // Проверка на наличие загруженного файла
+            const file = await request.file({ limits: { fileSize: 2 * 1024 * 1024 } }); // 2 MB
+            console.log(file)
+            if (file) {
+                const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+                if (!allowedMimeTypes.includes(file.mimetype)) {
+                    return reply.status(400).send({ message: 'Допускаются только изображения форматов JPEG, JPG или PNG.' });
+                }
+                // Загрузка файла в S3
+                fileUrl = await uploadToS3(file, process.env.S3_BUCKET_NAME, 'fresh/market/shop_icon');
+            }
+        } catch (err) {
+            // Если файл отсутствует, используется иконка по умолчанию
+            console.warn('Файл не был загружен, используется иконка по умолчанию.');
         }
 
         try {
-            // Загрузка файла в S3
-            const fileUrl = await uploadToS3(file, process.env.S3_BUCKET_NAME, 'fresh/market/shop_icon');
-
             // Создание записи магазина
             const newShop = await Shop.create({
                 ownerId: request.user.id,
-                name: file.fields.name.value,
-                description: file.fields.description.value,
+                name: request.query.name,
+                description: request.query.description,
                 icon: fileUrl,
             });
 
-            await user.decrement({balance: price})
+            await user.decrement({ balance: price });
 
             return reply.status(200).send({
                 message: 'Магазин успешно создан.',
@@ -63,5 +78,5 @@ module.exports = async function (fastify, opts) {
             console.error(err);
             return reply.status(500).send({ message: 'Ошибка при создании магазина.' });
         }
-    })
-}
+    });
+};
