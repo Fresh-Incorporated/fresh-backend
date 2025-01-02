@@ -14,13 +14,21 @@ module.exports = async function (fastify, options) {
             allowNull: false,
         },
         uuid: {
-            type: DataTypes.STRING,
+            type: DataTypes.UUID,
             allowNull: false,
         },
         discordId: {
             type: DataTypes.BIGINT,
             allowNull: true,
             unique: true
+        },
+        balance: {
+            type: DataTypes.DOUBLE,
+            defaultValue: 0
+        },
+        bonuses: {
+            type: DataTypes.DOUBLE,
+            defaultValue: 0
         },
     }, {
         tableName: 'users',
