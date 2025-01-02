@@ -25,7 +25,8 @@
     "fastify-plugin": "^4.0.0",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.13.1",
-    "sequelize": "^6.37.5"
+    "sequelize": "^6.37.5",
+    "spworlds": "^2.0.4"
   },
   "devDependencies": {
     "@types/node": "^22.10.3"

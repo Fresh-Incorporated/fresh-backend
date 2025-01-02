@@ -1,6 +1,7 @@
 'use strict'
 
 const DiscordOauth2 = require("discord-oauth2");
+const { SPWorlds } = require('spworlds');
 
 module.exports = async function (fastify, opts) {
   fastify.post('/discord/login', async function (request, reply) {
@@ -28,7 +29,7 @@ module.exports = async function (fastify, opts) {
         clientId: process.env.DISCORD_ID,
         clientSecret: process.env.DISCORD_SECRET,
         code,
-        scope: "identify email",
+        scope: "identify",
         grantType: "authorization_code",
         redirectUri: process.env.DISCORD_REDIRECT,
       });
@@ -38,22 +39,25 @@ module.exports = async function (fastify, opts) {
       // Получение данных пользователя из Discord
       const discordUserData = await oauth.getUser(access_token);
 
-      if (!discordUserData.verified) {
-        return reply.status(400).send({ message: 'Email в Discord не подтвержден' });
-      }
-
       // Поиск пользователя по Discord ID
       let user = await User.findOne({ where: { discordId: discordUserData.id } });
 
       if (!user) {
-        // Ищем аккаунт для привязки
-        user = await User.findOne({ where: { id: request?.user?.id ?? -1 } });
+        // Проверка доступности SPWorlds
+        const spwApi = new SPWorlds({ id: process.env.SPW_ID, token: process.env.SPW_TOKEN })
+        const pong = await spwApi.ping()
+
+        if (!pong) {
+          return reply.status(500).send({ message: 'SPWorlds API не доступен. Попробуйте позже.' });
+        }
+
+        const { username, uuid } = await spwApi.findUser(discordUserData.id);
 
         // Создаем нового пользователя
         user = await User.create({
           discordId: discordUserData.id,
-          email: discordUserData.email,
-          username: discordUserData.username,
+          nickname: username,
+          uuid: uuid,
         });
       }
 
