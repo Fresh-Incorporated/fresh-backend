@@ -5,16 +5,16 @@ module.exports = async function (fastify, opts) {
         try {
             const accessToken = request.cookies.access_token
             if (!accessToken) {
-                return reply.status(401).send({ error: 'Missing access token' })
+                return reply.status(401).send({error: 'Missing access token'})
             }
 
             request.user = fastify.jwt.verify(accessToken)
         } catch (err) {
-            reply.status(401).send({ error: 'Unauthorized' })
+            reply.status(401).send({error: 'Unauthorized'})
         }
     })
 
-    fastify.post('/', async function (request, reply) {
+    fastify.get('/', async function (request, reply) {
         const User = fastify.sequelize.model('User');
         const user = await User.findOne({
             where: {
@@ -30,5 +30,31 @@ module.exports = async function (fastify, opts) {
         }
 
         return reply.status(200).send(user);
+    })
+
+    fastify.get('/shops', async function (request, reply) {
+        const User = fastify.sequelize.model('User');
+        const Shop = fastify.sequelize.model('Shop');
+        const user = await User.findOne({
+            where: {
+                id: request.user.id
+            },
+            attributes: {exclude: ['updatedAt']},
+        })
+
+        if (!user) {
+            return reply.status(400).send({
+                message: "Пользователь не найден.."
+            });
+        }
+
+        const shops = await Shop.findAll({
+            where: {
+                ownerId: request.user.id
+            },
+            attributes: {exclude: ['updatedAt']},
+        });
+
+        return reply.status(200).send(shops);
     })
 }
