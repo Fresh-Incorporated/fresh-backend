@@ -71,6 +71,7 @@ module.exports = async function (fastify, opts) {
                 name: request.query.name,
                 description: request.query.description,
                 stack_count: request.query.stack_count,
+                slots_count: request.query.slots_count,
                 price: request.query.price,
                 icon: fileUrl,
             });
