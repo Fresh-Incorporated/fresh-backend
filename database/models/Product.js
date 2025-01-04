@@ -29,6 +29,11 @@ module.exports = async function (fastify, options) {
             type: DataTypes.DOUBLE,
             allowNull: false,
         },
+        verify_status: {
+            type: DataTypes.SMALLINT,
+            defaultValue: 0,
+            allowNull: false,
+        },
     }, {
         tableName: 'products',
         timestamps: true

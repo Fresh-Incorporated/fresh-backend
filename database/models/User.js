@@ -30,6 +30,10 @@ module.exports = async function (fastify, options) {
             type: DataTypes.DOUBLE,
             defaultValue: 0
         },
+        fm_worker: {
+            type: DataTypes.TINYINT,
+            defaultValue: 0
+        },
     }, {
         tableName: 'users',
         timestamps: true

@@ -19,7 +19,6 @@ module.exports = async function (fastify, opts) {
         const User = fastify.sequelize.model('User');
         const Shop = fastify.sequelize.model('Shop');
         const Product = fastify.sequelize.model('Product');
-        const VerifyBlank = fastify.sequelize.model('VerifyBlank');
 
         const user = await User.findOne({
             where: {
@@ -67,10 +66,6 @@ module.exports = async function (fastify, opts) {
         }
 
         try {
-            const verifyBlank = await VerifyBlank.create({
-                type: "shop"
-            });
-
             const newProduct = await Product.create({
                 shopId: shop.id,
                 name: request.query.name,
@@ -78,7 +73,6 @@ module.exports = async function (fastify, opts) {
                 count: request.query.count,
                 price: request.query.price,
                 icon: fileUrl,
-                verifyId: verifyBlank.id
             });
 
             return reply.status(200).send({
