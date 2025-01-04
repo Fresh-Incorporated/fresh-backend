@@ -20,6 +20,7 @@ module.exports = async function (fastify, opts) {
 
   fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'routes'),
+    routeParams: true,
     options: Object.assign({}, opts)
   })
 

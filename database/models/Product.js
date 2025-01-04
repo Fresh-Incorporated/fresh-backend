@@ -3,7 +3,7 @@ const { DataTypes, QueryTypes} = require('sequelize');
 module.exports = async function (fastify, options) {
     const sequelize = fastify.sequelize;
 
-    return sequelize.define('Shop', {
+    return sequelize.define('Product', {
         id: {
             type: DataTypes.INTEGER,
             primaryKey: true,
@@ -21,13 +21,16 @@ module.exports = async function (fastify, options) {
             type: DataTypes.TEXT,
             allowNull: true
         },
-        products_limit: {
+        count: {
             type: DataTypes.SMALLINT,
             allowNull: false,
-            defaultValue: 3,
-        }
+        },
+        price: {
+            type: DataTypes.DOUBLE,
+            allowNull: false,
+        },
     }, {
-        tableName: 'shops',
+        tableName: 'products',
         timestamps: true
     });
 }
