@@ -18,6 +18,7 @@ module.exports = async function (fastify, opts) {
     fastify.post('/create', async function (request, reply) {
         const User = fastify.sequelize.model('User');
         const Shop = fastify.sequelize.model('Shop');
+        const VerifyBlank = fastify.sequelize.model('VerifyBlank');
 
         const user = await User.findOne({
             where: {
@@ -60,12 +61,16 @@ module.exports = async function (fastify, opts) {
         }
 
         try {
-            // Создание записи магазина
+            const verifyBlank = await VerifyBlank.create({
+                type: "shop"
+            });
+
             const newShop = await Shop.create({
                 ownerId: request.user.id,
                 name: request.query.name,
                 description: request.query.description,
                 icon: fileUrl,
+                verifyId: verifyBlank.id
             });
 
             await user.decrement({ balance: price });

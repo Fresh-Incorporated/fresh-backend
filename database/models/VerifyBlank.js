@@ -15,6 +15,7 @@ module.exports = async function (fastify, options) {
         },
         status: {
             type: DataTypes.INTEGER,
+            defaultValue: 0,
             allowNull: false,
         },
         text: {
