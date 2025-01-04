@@ -1,6 +1,5 @@
 'use strict'
 
-const { uploadToS3 } = require("../../../../utils/s3Util");
 module.exports = async function (fastify, opts) {
     fastify.addHook('onRequest', async (request, reply) => {
         const User = fastify.sequelize.model('User');
