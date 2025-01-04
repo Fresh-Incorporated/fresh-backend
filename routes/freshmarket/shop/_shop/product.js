@@ -70,7 +70,7 @@ module.exports = async function (fastify, opts) {
                 shopId: shop.id,
                 name: request.query.name,
                 description: request.query.description,
-                count: request.query.count,
+                stack_count: request.query.stack_count,
                 price: request.query.price,
                 icon: fileUrl,
             });

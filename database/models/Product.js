@@ -21,7 +21,11 @@ module.exports = async function (fastify, options) {
             type: DataTypes.TEXT,
             allowNull: true
         },
-        count: {
+        stack_count: {
+            type: DataTypes.SMALLINT,
+            allowNull: false,
+        },
+        slots_count: {
             type: DataTypes.SMALLINT,
             allowNull: false,
         },
