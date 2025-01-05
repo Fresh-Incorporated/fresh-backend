@@ -9,10 +9,16 @@ module.exports = async function (fastify, opts) {
         const products = await Product.findAll({
             offset,
             limit: 30,
+            where: {
+                verify_status: 1
+            },
             include: {
                 model: Shop,
                 as: 'shop',
-                attributes: ["id", "name", "icon"]
+                attributes: ["id", "name", "icon"],
+                where: {
+                    verify_status: 1
+                },
             }
         })
 
