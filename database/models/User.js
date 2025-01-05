@@ -31,7 +31,7 @@ module.exports = async function (fastify, options) {
             defaultValue: 0
         },
         fm_worker: {
-            type: DataTypes.TINYINT,
+            type: DataTypes.SMALLINT,
             defaultValue: 0
         },
     }, {
