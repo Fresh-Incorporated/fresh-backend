@@ -33,6 +33,11 @@ module.exports = async function (fastify, options) {
             type: DataTypes.INTEGER,
             allowNull: true,
         },
+        slots: {
+            type: DataTypes.INTEGER,
+            defaultValue: 27,
+            allowNull: false,
+        }
     }, {
         tableName: 'location_cells',
         timestamps: false
