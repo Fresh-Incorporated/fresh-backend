@@ -24,7 +24,7 @@ async function setupDatabase(fastify) {
     LocationModel.hasMany(LocationCellModel, {foreignKey: 'locationId', as: 'cells'});
     LocationCellModel.belongsTo(LocationModel, {foreignKey: 'locationId', as: 'location'});
 
-    fastify.sequelize.sync({force: true})
+    fastify.sequelize.sync({force: false})
         .then(async () => {
             console.log("Database synchronized successfully")
         })
