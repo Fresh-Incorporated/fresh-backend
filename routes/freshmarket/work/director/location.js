@@ -35,6 +35,32 @@ module.exports = async function (fastify, opts) {
         }
     });
 
+    fastify.get('/locations', async function (request, reply) {
+        const Location = fastify.sequelize.model('Location');
+        const LocationImage = fastify.sequelize.model('LocationImage');
+        const LocationCoordinate = fastify.sequelize.model('LocationCoordinate');
+        const LocationCell = fastify.sequelize.model('LocationCell');
+
+        const locations = await Location.findAll({
+            include: [
+                {
+                    model: LocationCoordinate,
+                    as: "coordinates"
+                },
+                {
+                    model: LocationImage,
+                    as: "images"
+                },
+                {
+                    model: LocationCell,
+                    as: "cells"
+                }
+            ]
+        })
+
+        return reply.status(200).send(locations);
+    });
+
     fastify.post('/location/create', async function (request, reply) {
         const Location = fastify.sequelize.model('Location');
         const LocationImage = fastify.sequelize.model('LocationImage');
@@ -118,5 +144,33 @@ module.exports = async function (fastify, opts) {
         return reply.status(200).send({
             message: "Локация успешно создана"
         });
+    });
+
+    fastify.post('/location/:location/cells/add', async function (request, reply) {
+        const Location = fastify.sequelize.model('Location');
+        const LocationImage = fastify.sequelize.model('LocationImage');
+        const LocationCoordinate = fastify.sequelize.model('LocationCoordinate');
+        const LocationCell = fastify.sequelize.model('LocationCell');
+
+        const location = await Location.findOne({
+            where: {
+                id: request.params.location
+            },
+            attributes: {exclude: ['updatedAt']},
+        });
+
+        if (!location) {
+            return reply.status(400).send({message: "Локация не найдена"})
+        }
+
+        const cellsToInsert = request.body.cells.map(cell => ({
+            letter: cell.letter,
+            number: cell.number,
+            locationId: location.id
+        }));
+
+        await LocationCell.bulkCreate(cellsToInsert);
+
+        return reply.status(200).send({ message: "Ячейки добавлены" });
     });
 };

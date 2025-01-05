@@ -9,6 +9,10 @@ module.exports = async function (fastify, options) {
             primaryKey: true,
             autoIncrement: true
         },
+        world: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
         letter: {
             type: DataTypes.STRING,
             allowNull: false,
@@ -19,18 +23,18 @@ module.exports = async function (fastify, options) {
         },
         x: {
             type: DataTypes.INTEGER,
-            allowNull: false,
+            allowNull: true,
         },
         y: {
             type: DataTypes.INTEGER,
-            allowNull: false,
+            allowNull: true,
         },
         z: {
             type: DataTypes.INTEGER,
-            allowNull: false,
+            allowNull: true,
         },
     }, {
         tableName: 'location_cells',
-        timestamps: true
+        timestamps: false
     });
 }
