@@ -51,7 +51,17 @@ module.exports = async function (fastify, opts) {
 
         try {
             // Проверка на наличие загруженного файла
-            const file = await request.file({ limits: { fileSize: 2 * 1024 * 1024 } }); // 2 MB
+            const buffer = await request.body.icon.toBuffer();
+            const file = {
+                filename: request.body.icon.filename,
+                mimetype: request.body.icon.mimetype,
+                size: buffer.length,
+                buffer: buffer,
+            }
+
+            if (file.size > 2 * 1024 * 1024) {
+                return reply.status(400).send({ message: 'Иконка должна быть не более 2 МБ!' })
+            }
             if (file) {
                 const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg'];
                 if (!allowedMimeTypes.includes(file.mimetype)) {
@@ -61,7 +71,6 @@ module.exports = async function (fastify, opts) {
                 fileUrl = await uploadToS3(file, process.env.S3_BUCKET_NAME, 'fresh/market/product_icon');
             }
         } catch (err) {
-            // Если файл отсутствует, используется иконка по умолчанию
             console.warn('Файл не был загружен, используется иконка по умолчанию.');
         }
 
