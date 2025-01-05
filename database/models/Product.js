@@ -38,6 +38,11 @@ module.exports = async function (fastify, options) {
             defaultValue: 0,
             allowNull: false,
         },
+        count: {
+            type: DataTypes.INTEGER,
+            defaultValue: 0,
+            allowNull: false,
+        },
     }, {
         tableName: 'products',
         timestamps: true
