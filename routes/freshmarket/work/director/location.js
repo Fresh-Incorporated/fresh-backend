@@ -173,4 +173,54 @@ module.exports = async function (fastify, opts) {
 
         return reply.status(200).send({ message: "Ячейки добавлены" });
     });
+
+    fastify.post('/location/:location/enable', async function (request, reply) {
+        const Location = fastify.sequelize.model('Location');
+        const LocationCell = fastify.sequelize.model('LocationCell');
+
+        const location = await Location.findOne({
+            where: {
+                id: request.params.location
+            },
+            include: [
+                {
+                    model: LocationCell,
+                    as: "cells"
+                }
+            ],
+            attributes: {exclude: ['updatedAt']},
+        });
+
+        if (!location) {
+            return reply.status(400).send({message: "Локация не найдена"})
+        }
+
+        if (location.cells.length === 0) {
+            return reply.status(400).send({ message: "Невозможно включить локацию с 0 ячеек"})
+        }
+
+        await location.update({enabled: true});
+
+        return reply.status(200).send({ message: "Локация включена" });
+    });
+
+    fastify.post('/location/:location/disable', async function (request, reply) {
+        const Location = fastify.sequelize.model('Location');
+        const LocationCell = fastify.sequelize.model('LocationCell');
+
+        const location = await Location.findOne({
+            where: {
+                id: request.params.location
+            },
+            attributes: {exclude: ['updatedAt']},
+        });
+
+        if (!location) {
+            return reply.status(400).send({message: "Локация не найдена"})
+        }
+
+        await location.update({enabled: false});
+
+        return reply.status(200).send({ message: "Локация выключена" });
+    });
 };
