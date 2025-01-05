@@ -15,7 +15,7 @@ const s3Client = new S3Client({
 
 /**
  * Функция для загрузки файла в S3
- * @param {Object} file - Объект файла из запроса (fastify-multipart)
+ * @param {Object} file - Объект файла из запроса (fastify-multipart) {filename, mimetype, size, buffer}
  * @param {String} bucketName - Имя S3 бакета
  * @param {String} customPath - Кастомный путь внутри S3 (дополнительная папка)
  * @returns {String} - URL загруженного файла
@@ -29,7 +29,7 @@ async function uploadToS3(file, bucketName, customPath = '') {
 
     // Временное сохранение файла
     const tempPath = path.join(__dirname, '../uploads', uniqueFileName);
-    await fs.promises.writeFile(tempPath, await file.toBuffer());
+    await fs.promises.writeFile(tempPath, file.buffer);
 
     try {
         // Загрузка файла в S3

@@ -45,7 +45,6 @@ module.exports = async function (fastify, opts) {
         try {
             // Проверка на наличие загруженного файла
             const file = await request.file({ limits: { fileSize: 2 * 1024 * 1024 } }); // 2 MB
-            console.log(file)
             if (file) {
                 const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg'];
                 if (!allowedMimeTypes.includes(file.mimetype)) {
