@@ -86,7 +86,7 @@ module.exports = async function (fastify, opts) {
             });
 
             return reply.status(200).send({
-                message: 'Магазин успешно создан.',
+                message: 'Товар успешно создан.',
                 product: newProduct,
             });
         } catch (err) {
