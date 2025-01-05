@@ -1,6 +1,7 @@
 'use strict'
 
 const { uploadToS3 } = require("../../../../utils/s3Util");
+const {Sequelize, Op} = require("sequelize");
 module.exports = async function (fastify, opts) {
     fastify.addHook('onRequest', async (request, reply) => {
         try {
@@ -19,6 +20,8 @@ module.exports = async function (fastify, opts) {
         const User = fastify.sequelize.model('User');
         const Shop = fastify.sequelize.model('Shop');
         const Product = fastify.sequelize.model('Product');
+        const Location = fastify.sequelize.model('Location');
+        const LocationCell = fastify.sequelize.model('LocationCell');
 
         const user = await User.findOne({
             where: {
@@ -46,6 +49,28 @@ module.exports = async function (fastify, opts) {
         if (products.length >= shop.products_limit) {
             return reply.status(402).send({ message: "Создан максимум товаров." });
         }
+
+        // Подбор ячейки
+        const cell = await LocationCell.findOne({
+            where: {
+                slots: { [Op.gt]: request.query.slots_count },
+                id: {
+                    [Op.notIn]: Sequelize.literal(
+                        `(SELECT DISTINCT "cellId" FROM "products" WHERE "cellId" IS NOT NULL)`
+                    ),
+                },
+            },
+            include: [
+                {
+                    model: Location,
+                    as: "location",
+                    where: {
+                        type: "storage",
+                        enabled: true
+                    }
+                }
+            ],
+        });
 
         let fileUrl = process.env.DEFAULT_SHOP_ICON; // Путь по умолчанию
 
@@ -83,6 +108,7 @@ module.exports = async function (fastify, opts) {
                 slots_count: request.query.slots_count,
                 price: request.query.price,
                 icon: fileUrl,
+                cellId: cell?.id
             });
 
             return reply.status(200).send({
