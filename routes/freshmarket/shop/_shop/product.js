@@ -22,6 +22,7 @@ module.exports = async function (fastify, opts) {
         const Product = fastify.sequelize.model('Product');
         const Location = fastify.sequelize.model('Location');
         const LocationCell = fastify.sequelize.model('LocationCell');
+        const ProductHistory = fastify.sequelize.model('ProductHistory');
 
         const user = await User.findOne({
             where: {
@@ -110,6 +111,20 @@ module.exports = async function (fastify, opts) {
                 icon: fileUrl,
                 cellId: cell?.id
             });
+
+            await ProductHistory.create({
+                action_type: "created",
+                userId: user.id, // Тот кто создал товар
+                productId: newProduct.id,
+                data: {
+                    name: newProduct.name,
+                    description: newProduct.description,
+                    stack_count: newProduct.stack_count,
+                    slots_count: newProduct.slots_count,
+                    price: newProduct.price,
+                    icon: newProduct.icon,
+                },
+            })
 
             return reply.status(200).send({
                 message: 'Товар успешно создан.',

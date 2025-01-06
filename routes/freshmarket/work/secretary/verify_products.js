@@ -37,6 +37,7 @@ module.exports = async function (fastify, opts) {
     fastify.post('/product/:id/accept', async function (request, reply) {
         const Shop = fastify.sequelize.model('Shop');
         const Product = fastify.sequelize.model('Product');
+        const ProductHistory = fastify.sequelize.model('ProductHistory');
 
         const product = await Product.findOne({
             where: {
@@ -61,6 +62,12 @@ module.exports = async function (fastify, opts) {
 
         await product.update({verify_status: 1});
 
+        await ProductHistory.create({
+            action_type: "accepted",
+            userId: request.user.id, // Тот кто подтвердил товар
+            productId: product.id,
+        })
+
         return reply.status(200).send({
             message: "Товар подтверждён"
         });
@@ -69,6 +76,7 @@ module.exports = async function (fastify, opts) {
     fastify.post('/product/:id/decline', async function (request, reply) {
         const Shop = fastify.sequelize.model('Shop');
         const Product = fastify.sequelize.model('Product');
+        const ProductHistory = fastify.sequelize.model('ProductHistory');
 
         const product = await Product.findOne({
             where: {
@@ -92,6 +100,13 @@ module.exports = async function (fastify, opts) {
         }
 
         await product.update({verify_status: -1});
+
+        await ProductHistory.create({
+            action_type: "declined",
+            userId: request.user.id, // Тот кто отклонил товар
+            productId: product.id,
+            message: request.body.message
+        })
 
         return reply.status(200).send({
             message: "Товар отклонён"

@@ -15,7 +15,7 @@ module.exports = async function (fastify, options) {
         },
         message: {
             type: DataTypes.TEXT,
-            allowNull: false,
+            allowNull: true,
         },
         data: {
             type: DataTypes.JSON,
