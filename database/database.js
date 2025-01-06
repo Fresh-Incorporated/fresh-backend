@@ -31,6 +31,8 @@ async function setupDatabase(fastify) {
 
     ProductModel.belongsTo(LocationCellModel, {foreignKey: 'refillCellId', as: 'refillCell'});
 
+    ProductModel.belongsTo(UserModel, {foreignKey: 'currentRefillerId', as: 'currentRefiller'});
+
     fastify.sequelize.sync({force: false})
         .then(async () => {
             console.log("Database synchronized successfully")
