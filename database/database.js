@@ -27,6 +27,7 @@ async function setupDatabase(fastify) {
 
     ProductHistoryModel.belongsTo(UserModel, {foreignKey: 'userId', as: 'user'});
     ProductHistoryModel.belongsTo(ProductModel, {foreignKey: 'productId', as: 'product'});
+    ProductModel.hasMany(ProductHistoryModel, {foreignKey: 'productId', as: 'history'});
 
     fastify.sequelize.sync({force: false})
         .then(async () => {
