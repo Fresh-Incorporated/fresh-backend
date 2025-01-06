@@ -118,8 +118,7 @@ module.exports = async function (fastify, opts) {
         }
 
         await request.product.update({
-            refill_status: 2,
-            refillCellId: null
+            refill_status: 2
         })
 
         await ProductHistory.create({
