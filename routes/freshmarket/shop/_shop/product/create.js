@@ -1,6 +1,6 @@
 'use strict'
 
-const { uploadToS3 } = require("../../../../utils/s3Util");
+const { uploadToS3 } = require("../../../../../utils/s3Util");
 const {Sequelize, Op} = require("sequelize");
 module.exports = async function (fastify, opts) {
     fastify.addHook('onRequest', async (request, reply) => {
@@ -16,7 +16,7 @@ module.exports = async function (fastify, opts) {
         }
     });
 
-    fastify.post('/product/create', async function (request, reply) {
+    fastify.post('/create', async function (request, reply) {
         const User = fastify.sequelize.model('User');
         const Shop = fastify.sequelize.model('Shop');
         const Product = fastify.sequelize.model('Product');
