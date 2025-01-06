@@ -6,6 +6,7 @@ async function setupDatabase(fastify) {
     const LocationImageModel = await require('./models/LocationImage')(fastify);
     const LocationCoordinateModel = await require('./models/LocationCoordinate')(fastify);
     const LocationCellModel = await require('./models/LocationCell')(fastify);
+    const ProductHistoryModel = await require('./models/ProductHistory')(fastify);
 
     UserModel.hasMany(ShopModel, {foreignKey: 'ownerId'});
     ShopModel.belongsTo(UserModel, {foreignKey: 'ownerId', as: 'owner'});
@@ -23,6 +24,9 @@ async function setupDatabase(fastify) {
 
     LocationModel.hasMany(LocationCellModel, {foreignKey: 'locationId', as: 'cells'});
     LocationCellModel.belongsTo(LocationModel, {foreignKey: 'locationId', as: 'location'});
+
+    ProductHistoryModel.belongsTo(UserModel, {foreignKey: 'userId', as: 'user'});
+    ProductHistoryModel.belongsTo(ProductModel, {foreignKey: 'productId', as: 'product'});
 
     fastify.sequelize.sync({force: false})
         .then(async () => {
