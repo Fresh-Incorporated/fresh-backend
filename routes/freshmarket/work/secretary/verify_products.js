@@ -114,6 +114,7 @@ module.exports = async function (fastify, opts) {
     });
 
     fastify.get('/products', async function (request, reply) {
+        const User = fastify.sequelize.model('User');
         const Shop = fastify.sequelize.model('Shop');
         const Product = fastify.sequelize.model('Product');
         const Location = fastify.sequelize.model('Location');
@@ -144,7 +145,13 @@ module.exports = async function (fastify, opts) {
                 },
                 {
                     model: ProductHistory,
-                    as: "history"
+                    as: "history",
+                    include: [
+                        {
+                            model: User,
+                            as: 'user'
+                        }
+                    ]
                 },
             ]
         });
