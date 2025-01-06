@@ -38,6 +38,11 @@ module.exports = async function (fastify, options) {
             defaultValue: 0,
             allowNull: false,
         },
+        refill_status: {
+            type: DataTypes.SMALLINT,
+            defaultValue: 0,
+            allowNull: false,
+        },
         count: {
             type: DataTypes.INTEGER,
             defaultValue: 0,
