@@ -101,6 +101,8 @@ module.exports = async function (fastify, opts) {
     fastify.get('/products', async function (request, reply) {
         const Shop = fastify.sequelize.model('Shop');
         const Product = fastify.sequelize.model('Product');
+        const Location = fastify.sequelize.model('Location');
+        const LocationCell = fastify.sequelize.model('LocationCell');
 
         const products = await Product.findAll({
             where: {
@@ -113,6 +115,16 @@ module.exports = async function (fastify, opts) {
                     where: {
                         verify_status: 1
                     }
+                },
+                {
+                    model: LocationCell,
+                    as: "cell",
+                    include: [
+                        {
+                            model: Location,
+                            as: 'location'
+                        }
+                    ]
                 }
             ]
         });
