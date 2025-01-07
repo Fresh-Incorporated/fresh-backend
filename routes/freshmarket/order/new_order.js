@@ -85,6 +85,7 @@ module.exports = async function (fastify, opts) {
 
             // Создаём заказ
             const order = await Order.create({
+                customerId: request.user.id,
                 type,
                 price: totalPrice,
                 paid: true,

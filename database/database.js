@@ -38,6 +38,7 @@ async function setupDatabase(fastify) {
     OrderModel.belongsTo(UserModel, {foreignKey: 'customerId', as: 'customer'});
     OrderModel.belongsTo(UserModel, {foreignKey: 'currentWorkerId', as: 'currentWorker'});
     OrderModel.belongsTo(LocationModel, {foreignKey: 'branchId', as: 'branch'});
+    OrderModel.belongsTo(LocationCellModel, {foreignKey: 'cellId', as: 'cell'});
 
     OrderHistoryModel.belongsTo(UserModel, {foreignKey: 'userId', as: 'user'});
     OrderHistoryModel.belongsTo(OrderModel, {foreignKey: 'orderId', as: 'order'});
