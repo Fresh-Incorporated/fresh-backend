@@ -60,6 +60,12 @@ module.exports = async function (fastify, opts) {
             });
         }
 
+        if (!product.cell) {
+            return reply.status(400).send({
+                message: "Не присвоена ячейка."
+            });
+        }
+
         await product.update({verify_status: 1});
 
         await ProductHistory.create({
