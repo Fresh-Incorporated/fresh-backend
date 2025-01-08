@@ -38,6 +38,7 @@ module.exports = async function (fastify, opts) {
         const Shop = fastify.sequelize.model('Shop');
         const Product = fastify.sequelize.model('Product');
         const ProductHistory = fastify.sequelize.model('ProductHistory');
+        const LocationCell = fastify.sequelize.model('LocationCell');
 
         const product = await Product.findOne({
             where: {
@@ -50,6 +51,10 @@ module.exports = async function (fastify, opts) {
                     where: {
                         verify_status: 1
                     }
+                },
+                {
+                    model: LocationCell,
+                    as: "cell",
                 }
             ]
         });

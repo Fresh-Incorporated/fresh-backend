@@ -54,7 +54,8 @@ module.exports = async function (fastify, opts) {
 
             request.product = product
         } catch (err) {
-            reply.status(401).send({ error: 'Unauthorized' });
+            console.error(err)
+            reply.status(500).send({ message: 'Произошла ошибка' });
         }
     });
 
