@@ -100,7 +100,7 @@ module.exports = async function (fastify, opts) {
                 include: [
                     {
                         model: LocationCell,
-                        as: 'cell',
+                        as: 'branchCell',
                         attributes: { exclude: ['updatedAt', 'createdAt'] },
                     },
                     {
