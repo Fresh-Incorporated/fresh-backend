@@ -26,7 +26,7 @@ module.exports = async function (fastify, opts) {
                 });
             }
 
-            if (request.user.fm_worker < 2) {
+            if (request.user.fm_worker < 1) {
                 return reply.status(403).send({
                     message: "Недостаточно прав."
                 });
@@ -48,45 +48,45 @@ module.exports = async function (fastify, opts) {
         }
     });
 
-    fastify.post('/collect', async function (request, reply) {
+    fastify.post('/deliver', async function (request, reply) {
         const OrderHistory = fastify.sequelize.model('OrderHistory');
 
-        if (request.order.status !== 0) {
+        if (request.order.status !== 2) {
             return reply.status(400).send({ message: "Задача недоступна (Возможно уже выполняется другим работником)"})
         }
 
         await request.order.update({
-            status: 1,
+            status: 3,
             currentWorkerId: request.user.id,
         })
 
         await OrderHistory.create({
-            action_type: "collect_picked",
-            userId: request.user.id, // Тот кто взялся за сбор заказа
+            action_type: "deliver_started",
+            userId: request.user.id, // Тот кто взялся за доставку заказа
             orderId: request.order.id,
         })
 
-        return reply.status(200).send({product: request.product, message: "Задача на сбор заказа принята!"});
+        return reply.status(200).send({product: request.product, message: "Задача на доставку заказа принята!"});
     });
 
-    fastify.post('/collect/end', async function (request, reply) {
+    fastify.post('/deliver/end', async function (request, reply) {
         const OrderHistory = fastify.sequelize.model('OrderHistory');
 
-        if (request.order.status !== 1 || request.order.currentWorkerId !== request.user.id) {
+        if (request.order.status !== 3 || request.order.currentWorkerId !== request.user.id) {
             return reply.status(400).send({ message: "Задача недоступна (Возможно уже завершена)"})
         }
 
         await request.order.update({
-            status: 2,
+            status: 4,
             currentWorkerId: null,
         })
 
         await OrderHistory.create({
-            action_type: "collect_finished",
-            userId: request.user.id, // Тот кто взялся за сбор заказа
+            action_type: "deliver_finished",
+            userId: request.user.id, // Тот кто взялся за доставку заказа
             orderId: request.order.id,
         })
 
-        return reply.status(200).send({product: request.product, message: "Задача на сбор заказа завершена!"});
+        return reply.status(200).send({product: request.product, message: "Задача на доставку заказа завершена!"});
     });
 };
