@@ -2,6 +2,7 @@ const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const fs = require('fs');
 const path = require('path');
 const { randomUUID } = require('crypto');
+const sharp = require('sharp'); // Подключение библиотеки sharp
 
 // Инициализация S3 клиента
 const s3Client = new S3Client({
@@ -18,18 +19,32 @@ const s3Client = new S3Client({
  * @param {Object} file - Объект файла из запроса (fastify-multipart) {filename, mimetype, size, buffer}
  * @param {String} bucketName - Имя S3 бакета
  * @param {String} customPath - Кастомный путь внутри S3 (дополнительная папка)
+ * @param {Boolean} toWebp - Флаг преобразования в WebP
  * @returns {String} - URL загруженного файла
  */
-async function uploadToS3(file, bucketName, customPath = '') {
+async function uploadToS3(file, bucketName, customPath = '', toWebp = false) {
     const uniqueFileName = `${randomUUID()}-${Date.now()}`;
     const s3Root = process.env.S3_ROOT || '';
 
     // Указанный путь должен начинаться с S3_ROOT (Для директорий с проектами)
-    const fullPath = path.posix.join(s3Root, customPath, uniqueFileName);
+    let fullPath = path.posix.join(s3Root, customPath, uniqueFileName);
 
     // Временное сохранение файла
     const tempPath = path.join(__dirname, '../uploads', uniqueFileName);
-    await fs.promises.writeFile(tempPath, file.buffer);
+
+    // Обработка файла с преобразованием в WebP, если это указано
+    if (toWebp) {
+        try {
+            const webpBuffer = await sharp(file.buffer).webp({ quality: 80 }).toBuffer();
+            await fs.promises.writeFile(tempPath, webpBuffer);
+            fullPath += '.webp'; // Добавляем расширение WebP к файлу
+        } catch (error) {
+            console.error('Ошибка преобразования изображения в WebP:', error);
+            throw new Error('Не удалось преобразовать изображение в WebP.');
+        }
+    } else {
+        await fs.promises.writeFile(tempPath, file.buffer);
+    }
 
     try {
         // Загрузка файла в S3
@@ -37,7 +52,7 @@ async function uploadToS3(file, bucketName, customPath = '') {
             Bucket: bucketName,
             Key: fullPath,
             Body: fs.createReadStream(tempPath),
-            ContentType: file.mimetype,
+            ContentType: toWebp ? 'image/webp' : file.mimetype,
             ACL: 'public-read',
         });
 

@@ -94,7 +94,7 @@ module.exports = async function (fastify, opts) {
                     return reply.status(400).send({ message: 'Допускаются только изображения форматов JPEG, JPG или PNG.' });
                 }
                 // Загрузка файла в S3
-                fileUrl = await uploadToS3(file, process.env.S3_BUCKET_NAME, 'fresh/market/product_icon');
+                fileUrl = await uploadToS3(file, process.env.S3_BUCKET_NAME, 'fresh/market/product_icon', true);
             }
         } catch (err) {
             console.warn('Файл не был загружен, используется иконка по умолчанию.');

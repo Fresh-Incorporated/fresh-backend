@@ -104,7 +104,7 @@ module.exports = async function (fastify, opts) {
 
         // Загрузка на s3
         for (const image of images) {
-            const fileUrl = await uploadToS3(image, process.env.S3_BUCKET_NAME, 'fresh/market/location_image')
+            const fileUrl = await uploadToS3(image, process.env.S3_BUCKET_NAME, 'fresh/market/location_image', true)
             imageUrls.push(fileUrl);
         }
 
