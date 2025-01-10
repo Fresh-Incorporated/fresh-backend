@@ -73,7 +73,7 @@ module.exports = async function (fastify, opts) {
             ],
         });
 
-        let fileUrl = process.env.DEFAULT_SHOP_ICON; // Путь по умолчанию
+        let fileUrl = request.query?.minecraft_icon ? `https://img.zaralx.ru/v1/minecraft/${request.query?.minecraft_icon}` : process.env.DEFAULT_SHOP_ICON; // Путь по умолчанию
 
         try {
             // Проверка на наличие загруженного файла
