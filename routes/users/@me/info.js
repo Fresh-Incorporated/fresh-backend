@@ -120,7 +120,6 @@ module.exports = async function (fastify, opts) {
             // Сбор уникальных productId из заказов
             const productIds = new Set(); // Используем Set для избежания дубликатов
             const ordersWithProducts = orders.map(order => {
-                console.log(order)
                 const orderData = typeof order.data === "object" ? order.data : { products: [] };
                 orderData.products.forEach(product => productIds.add(product.id));
                 return { ...order.toJSON(), products: orderData.products };
