@@ -33,12 +33,25 @@ module.exports = async function (fastify, opts) {
         const Product = fastify.sequelize.model('Product');
         const Order = fastify.sequelize.model('Order');
         const OrderHistory = fastify.sequelize.model('OrderHistory');
+        const Location = fastify.sequelize.model('Location');
 
-        const { type, products } = request.body;
+        const { type, products, branch } = request.body;
         const { balance } = request.user;
 
         if (type !== "branch") {
             return reply.status(400).send({ message: "Сейчас доступна доставка только в филиалы!" });
+        }
+
+        const location = await Location.findOne({
+            where: {
+                id: branch,
+                enabled: true,
+                type: "branch"
+            }
+        })
+
+        if (!location) {
+            return reply.status(400).send({ message: "Доставка в выбранный филиал недоступна!" });
         }
 
         const transaction = await fastify.sequelize.transaction();
@@ -89,6 +102,7 @@ module.exports = async function (fastify, opts) {
                 type,
                 price: totalPrice,
                 paid: true,
+                branchId: branch,
                 data: { products: products.map(({ id, count }) => ({ id, count })) },
             }, { transaction });
 
