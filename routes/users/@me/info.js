@@ -112,6 +112,10 @@ module.exports = async function (fastify, opts) {
                         model: OrderHistory,
                         as: 'history',
                         attributes: { exclude: ['updatedAt'] },
+                        include: {
+                            model: User,
+                            as: "user"
+                        }
                     }
                 ],
                 attributes: { exclude: ['updatedAt'] },
