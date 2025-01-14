@@ -73,7 +73,7 @@ module.exports = async function (fastify, opts) {
             where: {
                 id: {
                     [Op.notIn]: Sequelize.literal(
-                        `(SELECT DISTINCT "cellId" FROM "products" WHERE "cellId" IS NOT NULL)`
+                        `(SELECT DISTINCT "refillCellId" FROM "products" WHERE "refillCellId" IS NOT NULL)`
                     ),
                 },
             },

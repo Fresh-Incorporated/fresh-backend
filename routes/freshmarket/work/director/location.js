@@ -74,7 +74,7 @@ module.exports = async function (fastify, opts) {
         const city = formData.get("city")
         const coordinates = JSON.parse(formData.get("coordinates"))
 
-        if (!["storage", "refill", "branch"].includes(type)) {
+        if (!["storage", "refill", "branch", "deliver"].includes(type)) {
             return reply.status(400).send({message: "Не подходящий тип локации."})
         }
 

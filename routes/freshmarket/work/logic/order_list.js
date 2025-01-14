@@ -85,12 +85,14 @@ module.exports = async function (fastify, opts) {
         // Получение продуктов по уникальным productId
         const products = await Product.findAll({
             where: { id: Array.from(productIds) }, // Преобразуем Set в массив
-            include: {
+            include: [{
                 model: Shop,
                 as: "shop",
                 attributes: ['id', 'name', 'description', 'icon'],
-            },
-            attributes: ['id', 'name', 'description', 'icon', 'price', 'shopId'],
+            },{
+                model: LocationCell,
+                as: "cell",
+            }],
         });
 
         return reply.status(200).send({orders: ordersWithProducts, products});
