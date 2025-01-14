@@ -44,6 +44,7 @@ module.exports = async function (fastify, opts) {
         const LocationCell = fastify.sequelize.model('LocationCell');
         const Order = fastify.sequelize.model('Order');
         const OrderHistory = fastify.sequelize.model('OrderHistory');
+        const LocationCoordinate = fastify.sequelize.model('LocationCoordinate');
 
         const orders = await Order.findAll({
             where: {
@@ -72,7 +73,11 @@ module.exports = async function (fastify, opts) {
                     include: [
                         {
                             model: Location,
-                            as: 'location'
+                            as: 'location',
+                            include: {
+                                model: LocationCoordinate,
+                                as: 'coordinates'
+                            }
                         }
                     ]
                 }

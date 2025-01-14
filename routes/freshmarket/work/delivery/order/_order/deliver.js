@@ -1,5 +1,6 @@
 'use strict'
 
+const {Op, Sequelize} = require("sequelize");
 module.exports = async function (fastify, opts) {
     fastify.addHook('onRequest', async (request, reply) => {
         const User = fastify.sequelize.model('User');
@@ -50,14 +51,42 @@ module.exports = async function (fastify, opts) {
 
     fastify.post('/deliver', async function (request, reply) {
         const OrderHistory = fastify.sequelize.model('OrderHistory');
+        const Location = fastify.sequelize.model('Location');
+        const LocationCell = fastify.sequelize.model('LocationCell');
 
         if (request.order.status !== 2) {
             return reply.status(400).send({ message: "Задача недоступна (Возможно уже выполняется другим работником)"})
         }
 
+        const cell = await LocationCell.findOne({
+            where: {
+                id: {
+                    [Op.notIn]: Sequelize.literal(
+                        `(SELECT DISTINCT "branchCellId" FROM "orders" WHERE "branchCellId" IS NOT NULL)`
+                    ),
+                },
+            },
+            include: [
+                {
+                    model: Location,
+                    as: "location",
+                    where: {
+                        id: request.order.branchId,
+                        type: "branch",
+                        enabled: true
+                    }
+                }
+            ],
+        });
+
+        if (!cell) {
+            return reply.status(500).send({ message: "Не получилось найти свободную ячейку в филиале, попробуйте позже.." })
+        }
+
         await request.order.update({
             status: 3,
             currentWorkerId: request.user.id,
+            branchCellId: cell.id
         })
 
         await OrderHistory.create({
