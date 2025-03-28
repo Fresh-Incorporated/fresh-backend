@@ -34,6 +34,10 @@ module.exports = async function (fastify, options) {
             type: DataTypes.SMALLINT,
             defaultValue: 0
         },
+        admin: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false
+        },
     }, {
         tableName: 'users',
         timestamps: true

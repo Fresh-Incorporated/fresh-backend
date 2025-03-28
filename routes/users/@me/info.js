@@ -5,12 +5,12 @@ module.exports = async function (fastify, opts) {
         try {
             const accessToken = request.cookies.access_token
             if (!accessToken) {
-                return reply.status(401).send({error: 'Missing access token'})
+                return reply.status(401).send({message: 'Missing access token'})
             }
 
             request.user = fastify.jwt.verify(accessToken)
         } catch (err) {
-            reply.status(401).send({error: 'Unauthorized'})
+            reply.status(401).send({message: 'Unauthorized'})
         }
     })
 
