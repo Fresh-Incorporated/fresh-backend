@@ -85,7 +85,7 @@ module.exports = async function (fastify, opts) {
         await request.order.update({
             status: 1,
             currentWorkerId: request.user.id,
-            deliveryCellId: cell.id
+            deliverCellId: cell.id
         })
 
         await OrderHistory.create({
