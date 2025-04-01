@@ -94,7 +94,7 @@ module.exports = async function (fastify, opts) {
                     }
                 }
                 if (history.action_type === "collect_finished") {
-                    const pay = totalSalary * 0.4;
+                    const pay = totalSalary * 0.2;
                     if (!salary.pays.logic) {
                         salary.pays.logic = {
                             pay
