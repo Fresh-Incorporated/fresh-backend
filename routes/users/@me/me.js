@@ -1,5 +1,6 @@
 'use strict'
 
+const {SPWorlds} = require("spworlds");
 module.exports = async function (fastify, opts) {
     fastify.addHook('onRequest', async (request, reply) => {
         try {
@@ -14,14 +15,35 @@ module.exports = async function (fastify, opts) {
         }
     })
 
-    // fastify.post('/delete', async function (request, reply) {
-    //     const User = fastify.sequelize.model('User');
-    //     await User.destroy({
-    //         where: {
-    //             id: request.user.id
-    //         }
-    //     })
-    //
-    //     return reply.status(200).send();
-    // })
+    fastify.get('/deposit', {
+        config: {
+            rateLimit: {
+                timeWindow: '5 minute',
+                max: 10
+            }
+        }
+    }, async function (request, reply) {
+        const spwApi = new SPWorlds({ id: process.env.SPW_ID, token: process.env.SPW_TOKEN })
+        const pong = await spwApi.ping()
+
+        if (!pong) {
+            return reply.status(500).send({ message: 'SPWorlds API не доступен. Попробуйте позже.' });
+        }
+
+        const payment = await spwApi.initPayment({
+            items: [
+                {
+                    name: "Пополнение баланса",
+                    count: "1",
+                    price: request.query.value,
+                    comment: "Эти АРы можно вывести обратно без комиссии!"
+                }
+            ],
+            redirectUrl: process.env.FRONTEND_URL + "/freshmarket",
+            webhookUrl: process.env.BACKEND_URL + "/",
+            data: 'deposit_' + request.user.id
+        })
+
+        return reply.status(200).send(payment);
+    })
 }

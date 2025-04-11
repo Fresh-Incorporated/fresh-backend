@@ -25,6 +25,14 @@ module.exports = async function (fastify, opts) {
 
     try {
       // Получение токена Discord
+      console.log({
+        clientId: process.env.DISCORD_ID,
+        clientSecret: process.env.DISCORD_SECRET,
+        code,
+        scope: "identify",
+        grantType: "authorization_code",
+        redirectUri: process.env.DISCORD_REDIRECT,
+      });
       const discordTokens = await oauth.tokenRequest({
         clientId: process.env.DISCORD_ID,
         clientSecret: process.env.DISCORD_SECRET,
