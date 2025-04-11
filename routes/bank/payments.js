@@ -15,9 +15,12 @@ module.exports = async function (fastify, opts) {
 
         const {data, amount} = request.body;
 
+        const type = data.split('_')[0]; // For updates [deposit]
+        const id = data.split('_')[1];
+
         await User.increment({balance: amount}, {
             where: {
-                id: data.id
+                id: id
             }
         });
 
