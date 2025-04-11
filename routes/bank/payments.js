@@ -7,6 +7,8 @@ module.exports = async function (fastify, opts) {
         const User = fastify.sequelize.model('User');
 
         const spwApi = new SPWorlds({ id: process.env.SPW_ID, token: process.env.SPW_TOKEN })
+        console.log(request.body)
+        console.log(request.headers)
         const isValid = spwApi.validateHash(request.body, request.headers['X-Body-Hash'])
 
         if (!isValid) {
