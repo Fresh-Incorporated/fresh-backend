@@ -39,7 +39,7 @@ module.exports = async function (fastify, opts) {
                     comment: "Эти АРы можно вывести обратно без комиссии!"
                 }
             ],
-            redirectUrl: process.env.FRONTEND_URL + "/freshmarket",
+            redirectUrl: process.env.FRONTEND_URL + "/bank/payment/spworlds/completed",
             webhookUrl: process.env.BACKEND_URL + "/bank/spworlds/payment",
             data: 'deposit_' + request.user.id
         })
