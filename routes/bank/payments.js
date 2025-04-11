@@ -9,7 +9,7 @@ module.exports = async function (fastify, opts) {
         const spwApi = new SPWorlds({ id: process.env.SPW_ID, token: process.env.SPW_TOKEN })
         console.log(request.body)
         console.log(request.headers)
-        const isValid = spwApi.validateHash(request.body, request.headers['X-Body-Hash'])
+        const isValid = spwApi.validateHash(request.body, request.headers['x-body-hash'])
 
         if (!isValid) {
             return reply.status(400).send({ message: 'Ошибка проверки цифровой подписи.' });
