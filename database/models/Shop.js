@@ -31,6 +31,11 @@ module.exports = async function (fastify, options) {
             defaultValue: 0,
             allowNull: false,
         },
+        balance: {
+            type: DataTypes.DOUBLE,
+            allowNull: false,
+            defaultValue: 0,
+        },
     }, {
         tableName: 'shops',
         paranoid: true,

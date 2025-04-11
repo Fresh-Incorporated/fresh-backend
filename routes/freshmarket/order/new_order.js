@@ -31,6 +31,7 @@ module.exports = async function (fastify, opts) {
 
     fastify.post('/new/instant', async function (request, reply) {
         const Product = fastify.sequelize.model('Product');
+        const Shop = fastify.sequelize.model('Shop');
         const Order = fastify.sequelize.model('Order');
         const OrderHistory = fastify.sequelize.model('OrderHistory');
         const Location = fastify.sequelize.model('Location');
@@ -60,6 +61,10 @@ module.exports = async function (fastify, opts) {
             const productIds = products.map(product => product.id);
             const productRows = await Product.findAll({
                 where: { id: productIds },
+                include: {
+                    model: Shop,
+                    as: "shop"
+                },
                 transaction,
             });
 
@@ -91,6 +96,11 @@ module.exports = async function (fastify, opts) {
             // Списываем средства с пользователя и обновляем количество продуктов
             for (const product of products) {
                 const productRow = productRows.find(row => row.id === product.id);
+                await Shop.increment({balance: productRow.price * product.count * 0.9}, {
+                    where: {
+                        id: productRow.shopId,
+                    }
+                });
                 await productRow.decrement({ count: product.count }, { transaction });
             }
 
