@@ -32,6 +32,7 @@ module.exports = async function (fastify, options) {
         },
     }, {
         tableName: 'locations',
+        paranoid: true,
         timestamps: true
     });
 }

@@ -33,6 +33,7 @@ module.exports = async function (fastify, options) {
         },
     }, {
         tableName: 'shops',
+        paranoid: true,
         timestamps: true
     });
 }

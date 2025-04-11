@@ -49,6 +49,7 @@ module.exports = async function (fastify, options) {
         },
     }, {
         tableName: 'orders',
+        paranoid: true,
         timestamps: true
     });
 }

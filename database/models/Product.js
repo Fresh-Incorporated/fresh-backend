@@ -50,6 +50,7 @@ module.exports = async function (fastify, options) {
         },
     }, {
         tableName: 'products',
+        paranoid: true,
         timestamps: true
     });
 }

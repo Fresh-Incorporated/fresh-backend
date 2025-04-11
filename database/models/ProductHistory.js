@@ -23,6 +23,7 @@ module.exports = async function (fastify, options) {
         },
     }, {
         tableName: 'products_history',
+        paranoid: true,
         timestamps: true
     });
 }

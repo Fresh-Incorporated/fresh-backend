@@ -14,14 +14,14 @@ module.exports = async function (fastify, opts) {
         }
     })
 
-    fastify.post('/delete', async function (request, reply) {
-        const User = fastify.sequelize.model('User');
-        await User.destroy({
-            where: {
-                id: request.user.id
-            }
-        })
-
-        return reply.status(200).send();
-    })
+    // fastify.post('/delete', async function (request, reply) {
+    //     const User = fastify.sequelize.model('User');
+    //     await User.destroy({
+    //         where: {
+    //             id: request.user.id
+    //         }
+    //     })
+    //
+    //     return reply.status(200).send();
+    // })
 }
