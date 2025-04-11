@@ -40,7 +40,7 @@ module.exports = async function (fastify, opts) {
                 }
             ],
             redirectUrl: process.env.FRONTEND_URL + "/freshmarket",
-            webhookUrl: process.env.BACKEND_URL + "/",
+            webhookUrl: process.env.BACKEND_URL + "/bank/spworlds/payment",
             data: 'deposit_' + request.user.id
         })
 
