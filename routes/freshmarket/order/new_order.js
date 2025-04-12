@@ -43,6 +43,10 @@ module.exports = async function (fastify, opts) {
             return reply.status(400).send({ message: "Сейчас доступна доставка только в филиалы!" });
         }
 
+        if (products.length < 1) {
+            return reply.status(400).send({ message: "Корзина пуста!" });
+        }
+
         const location = await Location.findOne({
             where: {
                 id: branch,
