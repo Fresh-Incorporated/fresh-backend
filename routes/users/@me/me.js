@@ -65,20 +65,20 @@ module.exports = async function (fastify, opts) {
 
         const {receiver, amount} = request.body;
 
-        if (amount < 1 && amount > 1728) {
+        if (amount < 1 && amount > 1728 && amount != null) {
             return reply.status(500).send({ message: 'Сумма должна быть больше 0 и меньше 1729.' });
         }
-
-        await User.decrement({balance: amount}, {
-            where: {
-                id: request.user.id
-            }
-        })
 
         await spwApi.createTransaction({
             receiver: receiver,
             amount: amount,
             comment: 'Вывод средств Fresh Inc'
+        })
+
+        await User.decrement({balance: amount}, {
+            where: {
+                id: request.user.id
+            }
         })
 
         return reply.status(200).send({ message: "Успешный вывод!"});
