@@ -46,4 +46,41 @@ module.exports = async function (fastify, opts) {
 
         return reply.status(200).send(payment);
     })
+
+    fastify.post('/withdraw', {
+        config: {
+            rateLimit: {
+                timeWindow: '5 minute',
+                max: 10
+            }
+        }
+    }, async function (request, reply) {
+        const User = fastify.sequelize.model('User');
+        const spwApi = new SPWorlds({ id: process.env.SPW_ID, token: process.env.SPW_TOKEN })
+        const pong = await spwApi.ping()
+
+        if (!pong) {
+            return reply.status(500).send({ message: 'SPWorlds API не доступен. Попробуйте позже.' });
+        }
+
+        const {receiver, amount} = request.body;
+
+        if (amount < 1 && amount > 1728) {
+            return reply.status(500).send({ message: 'Сумма должна быть больше 0 и меньше 1729.' });
+        }
+
+        await User.decrement({balance: amount}, {
+            where: {
+                id: request.user.id
+            }
+        })
+
+        await spwApi.createTransaction({
+            receiver: receiver,
+            amount: amount,
+            comment: 'Вывод средств Fresh Inc'
+        })
+
+        return reply.status(200).send({ message: "Успешный вывод!"});
+    })
 }
