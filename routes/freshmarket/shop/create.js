@@ -18,6 +18,7 @@ module.exports = async function (fastify, opts) {
     fastify.post('/create', async function (request, reply) {
         const User = fastify.sequelize.model('User');
         const Shop = fastify.sequelize.model('Shop');
+        const ShopHistory = fastify.sequelize.model('ShopHistory');
 
         const user = await User.findOne({
             where: {
@@ -76,6 +77,17 @@ module.exports = async function (fastify, opts) {
             });
 
             await user.decrement({ balance: price });
+
+            await ShopHistory.create({
+                action_type: "created",
+                userId: user.id, // Тот кто создал магазин
+                shopId: newShop.id,
+                data: {
+                    name: newShop.name,
+                    description: newShop.description,
+                    products_limit: newShop.products_limit,
+                },
+            })
 
             return reply.status(200).send({
                 message: 'Магазин успешно создан.',

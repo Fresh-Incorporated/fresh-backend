@@ -34,6 +34,7 @@ module.exports = async function (fastify, opts) {
         const Shop = fastify.sequelize.model('Shop');
         const Order = fastify.sequelize.model('Order');
         const OrderHistory = fastify.sequelize.model('OrderHistory');
+        const ShopHistory = fastify.sequelize.model('ShopHistory');
         const Location = fastify.sequelize.model('Location');
 
         const { type, products, branch } = request.body;
@@ -104,7 +105,17 @@ module.exports = async function (fastify, opts) {
                     where: {
                         id: productRow.shopId,
                     }
-                });
+                }, { transaction });
+                await ShopHistory.create({
+                    action_type: "ordered",
+                    userId: request.user.id, // Тот кто создал заказ
+                    shopId: productRow.shopId,
+                    data: {
+                        product: product.id,
+                        count: product.count,
+                        price: productRow.price,
+                    },
+                }, { transaction })
                 await productRow.decrement({ count: product.count }, { transaction });
             }
 
