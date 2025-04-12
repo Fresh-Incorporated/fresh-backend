@@ -10,6 +10,7 @@ async function setupDatabase(fastify) {
     const OrderModel = await require('./models/Order')(fastify);
     const OrderHistoryModel = await require('./models/OrderHistory')(fastify);
     const ShopHistoryModel = await require('./models/ShopHistory')(fastify);
+    const BalanceHistoryModel = await require('./models/BalanceHistory')(fastify);
 
     UserModel.hasMany(ShopModel, {foreignKey: 'ownerId'});
     ShopModel.belongsTo(UserModel, {foreignKey: 'ownerId', as: 'owner'});
@@ -48,6 +49,9 @@ async function setupDatabase(fastify) {
 
     ShopModel.hasMany(ShopHistoryModel, {foreignKey: 'shopId', as: 'history'});
     ShopHistoryModel.belongsTo(ShopModel, {foreignKey: 'shopId', as: 'history'});
+
+    UserModel.hasMany(BalanceHistoryModel, {foreignKey: 'userId', as: 'balanceHistory'});
+    BalanceHistoryModel.belongsTo(UserModel, {foreignKey: 'userId', as: 'balanceHistory'});
 
     fastify.sequelize.sync({force: false})
         .then(async () => {

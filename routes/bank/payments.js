@@ -5,6 +5,7 @@ const {SPWorlds} = require("spworlds");
 module.exports = async function (fastify, opts) {
     fastify.post('/spworlds/payment', async (request, reply) => {
         const User = fastify.sequelize.model('User');
+        const BalanceHistory = fastify.sequelize.model('BalanceHistory');
 
         const spwApi = new SPWorlds({ id: process.env.SPW_ID, token: process.env.SPW_TOKEN })
         const isValid = spwApi.validateHash(request.body, request.headers['x-body-hash'])
@@ -23,5 +24,11 @@ module.exports = async function (fastify, opts) {
                 id: id
             }
         });
+
+        await BalanceHistory.create({
+            action_type: "deposit",
+            message: "Пополнение средств из SPWorlds",
+            value: amount
+        })
     })
 }

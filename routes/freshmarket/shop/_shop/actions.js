@@ -20,6 +20,7 @@ module.exports = async function (fastify, opts) {
         const User = fastify.sequelize.model('User');
         const Shop = fastify.sequelize.model('Shop');
         const ShopHistory = fastify.sequelize.model('ShopHistory');
+        const BalanceHistory = fastify.sequelize.model('BalanceHistory');
 
         const user = await User.findOne({
             where: {
@@ -55,6 +56,11 @@ module.exports = async function (fastify, opts) {
             data: {
                 value
             },
+        })
+        await BalanceHistory.create({
+            action_type: "freshmarket_shop_withdraw",
+            message: "Вывод средств из магазина " + shop.name + " [" + shop.id + "]",
+            value: value
         })
         return reply.status(200).send({message: "Средства магазина переведены на ваш аккаунт!"});
     });
