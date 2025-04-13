@@ -96,6 +96,10 @@ module.exports = async function (fastify, opts) {
                     return reply.status(400).send({ message: `Товара "${productRow.name}" недостаточно на складе.` });
                 }
 
+                if (product.count < 1) {
+                    return reply.status(400).send({ message: `Ты как 0 товара заказал гений?` });
+                }
+
                 totalPrice += productRow.price * product.count;
             }
 
