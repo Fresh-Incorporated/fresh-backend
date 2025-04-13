@@ -170,6 +170,7 @@ module.exports = async function (fastify, opts) {
             return reply.status(200).send({ message: "Заказ оформлен." });
 
         } catch (error) {
+            console.error(error);
             await transaction.rollback(); // Откатываем транзакцию при ошибке
             return reply.status(500).send({ message: "Произошла ошибка при оформлении заказа.", error: error.message });
         }
