@@ -37,8 +37,13 @@ module.exports = async function (fastify, opts) {
         const ShopHistory = fastify.sequelize.model('ShopHistory');
         const Location = fastify.sequelize.model('Location');
 
-        const { type, products, branch } = request.body;
+        const { type, branch } = request.body;
         const { balance } = request.user;
+
+        const products = request.body.products.map((product) => {
+            product.count = parseInt(product?.count);
+            return product;
+        })
 
         if (type !== "branch") {
             return reply.status(400).send({ message: "Сейчас доступна доставка только в филиалы!" });
