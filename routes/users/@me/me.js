@@ -30,6 +30,12 @@ module.exports = async function (fastify, opts) {
             return reply.status(500).send({ message: 'SPWorlds API не доступен. Попробуйте позже.' });
         }
 
+        const value = parseInt(request.query.value);
+
+        if (value == null || value < 1 || value > 1728) {
+            return reply.status(400).send({ message: 'Неверное значение.' });
+        }
+
         const payment = await spwApi.initPayment({
             items: [
                 {
