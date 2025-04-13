@@ -45,6 +45,8 @@ module.exports = async function (fastify, opts) {
             return product;
         })
 
+        console.log(products);
+
         if (type !== "branch") {
             return reply.status(400).send({ message: "Сейчас доступна доставка только в филиалы!" });
         }
