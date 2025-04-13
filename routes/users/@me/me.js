@@ -81,7 +81,7 @@ module.exports = async function (fastify, opts) {
             receiver: receiver,
             amount: amount,
             comment: 'Вывод средств Fresh Inc'
-        }).
+        })
 
         await User.decrement({balance: amount}, {
             where: {
