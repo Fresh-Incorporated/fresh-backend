@@ -70,7 +70,8 @@ module.exports = async function (fastify, opts) {
             return reply.status(500).send({ message: 'SPWorlds API не доступен. Попробуйте позже.' });
         }
 
-        const {receiver, amount} = request.body;
+        const {receiver} = request.body;
+        const amount = parseInt(request.body.amount);
 
         if (amount < 1 && amount > 1728 && amount != null) {
             return reply.status(500).send({ message: 'Сумма должна быть больше 0 и меньше 1729.' });
@@ -80,7 +81,7 @@ module.exports = async function (fastify, opts) {
             receiver: receiver,
             amount: amount,
             comment: 'Вывод средств Fresh Inc'
-        })
+        }).
 
         await User.decrement({balance: amount}, {
             where: {
