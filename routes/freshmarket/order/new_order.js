@@ -79,7 +79,7 @@ module.exports = async function (fastify, opts) {
                     model: Shop,
                     as: "shop"
                 }
-            });
+            }, { transaction });
             console.log(3);
 
             if (productRows.length !== products.length) {
