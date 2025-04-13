@@ -66,7 +66,7 @@ module.exports = async function (fastify, opts) {
         }
         const productIds = products.map(product => product.id);
         const productRows = await Product.findAll({
-            where: { id: productIds },
+            where: { id: productIds, verify_status: 1 },
             include: {
                 model: Shop,
                 as: "shop"
