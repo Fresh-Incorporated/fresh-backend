@@ -76,8 +76,7 @@ module.exports = async function (fastify, opts) {
                 include: {
                     model: Shop,
                     as: "shop"
-                },
-                transaction,
+                }
             });
 
             if (productRows.length !== products.length) {
