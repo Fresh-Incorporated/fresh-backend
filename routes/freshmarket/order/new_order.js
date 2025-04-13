@@ -66,54 +66,50 @@ module.exports = async function (fastify, opts) {
         if (!location) {
             return reply.status(400).send({ message: "Доставка в выбранный филиал недоступна!" });
         }
+        const productIds = products.map(product => product.id);
+        const productRows = await Product.findAll({
+            where: { id: productIds },
+            include: {
+                model: Shop,
+                as: "shop"
+            }
+        });
+
+        if (productRows.length !== products.length) {
+            return reply.status(400).send({ message: "Некоторые товары не найдены." });
+        }
+
+        let totalPrice = 0;
+
+        // Валидация продуктов и расчёт общей суммы
+        for (const product of products) {
+            const productRow = productRows.find(row => row.id === product.id);
+
+            if (!productRow) {
+                return reply.status(400).send({ message: `Товар с ID ${product.id} не найден.` });
+            }
+
+            if (product.count > productRow.count) {
+                return reply.status(400).send({ message: `Товара "${productRow.name}" недостаточно на складе.` });
+            }
+
+            if (product.count < 1) {
+                return reply.status(400).send({ message: `Ты как 0 товара заказал гений?` });
+            }
+
+            totalPrice += productRow.price * product.count;
+        }
+
+        if (balance < totalPrice) {
+            return reply.status(400).send({ message: "Недостаточно средств, пополните баланс." });
+        }
 
         console.log(1);
         const transaction = await fastify.sequelize.transaction();
 
         console.log(2);
         try {
-            const productIds = products.map(product => product.id);
-            const productRows = await Product.findAll({
-                where: { id: productIds },
-                include: {
-                    model: Shop,
-                    as: "shop"
-                }
-            }, { transaction });
             console.log(3);
-
-            if (productRows.length !== products.length) {
-                return reply.status(400).send({ message: "Некоторые товары не найдены." });
-            }
-            console.log(4);
-
-            let totalPrice = 0;
-
-            // Валидация продуктов и расчёт общей суммы
-            for (const product of products) {
-                console.log(5);
-                const productRow = productRows.find(row => row.id === product.id);
-
-                if (!productRow) {
-                    return reply.status(400).send({ message: `Товар с ID ${product.id} не найден.` });
-                }
-
-                if (product.count > productRow.count) {
-                    return reply.status(400).send({ message: `Товара "${productRow.name}" недостаточно на складе.` });
-                }
-
-                if (product.count < 1) {
-                    return reply.status(400).send({ message: `Ты как 0 товара заказал гений?` });
-                }
-
-                totalPrice += productRow.price * product.count;
-            }
-
-            console.log(6);
-            if (balance < totalPrice) {
-                return reply.status(400).send({ message: "Недостаточно средств, пополните баланс." });
-            }
-            console.log(7);
 
             // Списываем средства с пользователя и обновляем количество продуктов
             for (const product of products) {
@@ -122,8 +118,9 @@ module.exports = async function (fastify, opts) {
                 await Shop.increment({balance: productRow.price * product.count * 0.9}, {
                     where: {
                         id: productRow.shopId,
-                    }
-                }, { transaction });
+                    },
+                    transaction
+                });
                 await ShopHistory.create({
                     action_type: "ordered",
                     userId: request.user.id, // Тот кто создал заказ
@@ -133,7 +130,10 @@ module.exports = async function (fastify, opts) {
                         count: product.count,
                         price: productRow.price,
                     },
-                }, { transaction })
+
+                }, {
+                    transaction
+                })
                 await productRow.decrement({ count: product.count }, { transaction });
             }
             console.log(9);
