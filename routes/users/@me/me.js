@@ -19,7 +19,7 @@ module.exports = async function (fastify, opts) {
         config: {
             rateLimit: {
                 timeWindow: '5 minute',
-                max: 10
+                max: 5
             }
         }
     }, async function (request, reply) {
@@ -51,7 +51,7 @@ module.exports = async function (fastify, opts) {
         config: {
             rateLimit: {
                 timeWindow: '5 minute',
-                max: 10
+                max: 5
             }
         }
     }, async function (request, reply) {
