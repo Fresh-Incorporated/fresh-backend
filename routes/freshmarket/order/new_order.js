@@ -67,8 +67,10 @@ module.exports = async function (fastify, opts) {
             return reply.status(400).send({ message: "Доставка в выбранный филиал недоступна!" });
         }
 
+        console.log(1);
         const transaction = await fastify.sequelize.transaction();
 
+        console.log(2);
         try {
             const productIds = products.map(product => product.id);
             const productRows = await Product.findAll({
@@ -78,15 +80,18 @@ module.exports = async function (fastify, opts) {
                     as: "shop"
                 }
             });
+            console.log(3);
 
             if (productRows.length !== products.length) {
                 return reply.status(400).send({ message: "Некоторые товары не найдены." });
             }
+            console.log(4);
 
             let totalPrice = 0;
 
             // Валидация продуктов и расчёт общей суммы
             for (const product of products) {
+                console.log(5);
                 const productRow = productRows.find(row => row.id === product.id);
 
                 if (!productRow) {
@@ -104,12 +109,15 @@ module.exports = async function (fastify, opts) {
                 totalPrice += productRow.price * product.count;
             }
 
+            console.log(6);
             if (balance < totalPrice) {
                 return reply.status(400).send({ message: "Недостаточно средств, пополните баланс." });
             }
+            console.log(7);
 
             // Списываем средства с пользователя и обновляем количество продуктов
             for (const product of products) {
+                console.log(8);
                 const productRow = productRows.find(row => row.id === product.id);
                 await Shop.increment({balance: productRow.price * product.count * 0.9}, {
                     where: {
@@ -128,8 +136,10 @@ module.exports = async function (fastify, opts) {
                 }, { transaction })
                 await productRow.decrement({ count: product.count }, { transaction });
             }
+            console.log(9);
 
             await request.user.decrement({ balance: totalPrice }, { transaction });
+            console.log(10);
 
             // Создаём заказ
             const order = await Order.create({
@@ -140,18 +150,21 @@ module.exports = async function (fastify, opts) {
                 branchId: branch,
                 data: { products: products.map(({ id, count }) => ({ id, count })) },
             }, { transaction });
+            console.log(11);
 
             await OrderHistory.create({
                 action_type: "created",
                 orderId: order.id,
                 userId: request.user.id
             }, { transaction })
+            console.log(12);
 
             await OrderHistory.create({
                 action_type: "paid",
                 orderId: order.id,
                 userId: request.user.id
             }, { transaction })
+            console.log(13);
 
             await transaction.commit();
             return reply.status(200).send({ message: "Заказ оформлен." });
