@@ -30,7 +30,7 @@ module.exports = async function (fastify, options) {
             allowNull: true,
         },
         data: {
-            type: DataTypes.JSON,
+            type: DataTypes.JSONB,
             allowNull: false,
         },
         price: {
