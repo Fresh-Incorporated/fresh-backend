@@ -28,6 +28,7 @@ module.exports = async function (fastify, opts) {
     if (error.statusCode === 429) {
       return reply.code(429).send({ error: 'Превышен лимит скорости. Попробуйте позже.'})
     }
+    return reply.send(error)
   })
 
   await database.setupDatabase(fastify)

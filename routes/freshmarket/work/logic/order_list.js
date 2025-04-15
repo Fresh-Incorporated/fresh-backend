@@ -93,6 +93,7 @@ module.exports = async function (fastify, opts) {
                 model: LocationCell,
                 as: "cell",
             }],
+            paranoid: false
         });
 
         return reply.status(200).send({orders: ordersWithProducts, products});
