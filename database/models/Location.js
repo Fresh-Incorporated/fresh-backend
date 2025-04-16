@@ -18,7 +18,7 @@ module.exports = async function (fastify, options) {
             allowNull: false,
         },
         type: {
-            type: DataTypes.STRING,
+            type: DataTypes.ENUM("storage", "refill", "branch", "deliver"),
             allowNull: false,
         },
         city: {

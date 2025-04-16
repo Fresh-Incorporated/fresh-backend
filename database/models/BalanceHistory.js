@@ -18,7 +18,7 @@ module.exports = async function (fastify, options) {
             allowNull: true,
         },
         action_type: {
-            type: DataTypes.STRING,
+            type: DataTypes.ENUM("deposit", "freshmarket_shop_withdraw", "withdraw"),
             allowNull: true,
         },
     }, {
