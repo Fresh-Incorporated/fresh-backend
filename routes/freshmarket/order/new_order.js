@@ -16,7 +16,7 @@ module.exports = async function (fastify, opts) {
                 where: {
                     id: request.user.id
                 },
-                attributes: { exclude: ['updatedAt'] },
+                attributes: ['id', 'balance'],
             });
 
             if (!request.user) {
@@ -58,10 +58,11 @@ module.exports = async function (fastify, opts) {
                 id: branch,
                 enabled: true,
                 type: "branch"
-            }
+            },
+            attributes: ['id']
         })
 
-        if (!location) {
+        if (location == null) {
             return reply.status(400).send({ message: "Доставка в выбранный филиал недоступна!" });
         }
         const productIds = products.map(product => product.id);
@@ -108,7 +109,7 @@ module.exports = async function (fastify, opts) {
             // Списываем средства с пользователя и обновляем количество продуктов
             for (const product of products) {
                 const productRow = productRows.find(row => row.id === product.id);
-                await Shop.increment({balance: productRow.price * product.count * 0.9}, {
+                await Shop.increment({ balance: productRow.price * product.count * 0.9}, {
                     where: {
                         id: productRow.shopId,
                     },
@@ -132,7 +133,6 @@ module.exports = async function (fastify, opts) {
 
             await request.user.decrement({ balance: totalPrice }, { transaction });
 
-            // Создаём заказ
             const order = await Order.create({
                 customerId: request.user.id,
                 type,

@@ -28,7 +28,7 @@ module.exports = async function (fastify, opts) {
             where: {
                 id: request.user.id
             },
-            attributes: { exclude: ['updatedAt'] },
+            attributes: ['id'],
         });
 
         if (!user) {
@@ -37,7 +37,7 @@ module.exports = async function (fastify, opts) {
             });
         }
 
-        const shop = await Shop.findOne({where: { id: request.params.shop, ownerId: request.user.id }});
+        const shop = await Shop.findOne({ where: { id: request.params.shop, ownerId: request.user.id }, attributes: ['id', 'products_limit'] });
 
         if (!shop) {
             return reply.status(400).send({
@@ -45,9 +45,9 @@ module.exports = async function (fastify, opts) {
             });
         }
 
-        const products = await Product.findAll({ where: { shopId: shop.id } });
+        const products_count = await Product.count({ where: { shopId: shop.id } });
 
-        if (products.length >= shop.products_limit) {
+        if (products_count>= shop.products_limit) {
             return reply.status(402).send({ message: "Создан максимум товаров." });
         }
 
@@ -71,6 +71,7 @@ module.exports = async function (fastify, opts) {
                     }
                 }
             ],
+            attributes: ['id']
         });
 
         let fileUrl = request.query?.minecraft_icon ? `https://img.zaralx.ru/v1/minecraft/${request.query?.minecraft_icon}` : process.env.DEFAULT_SHOP_ICON; // Путь по умолчанию

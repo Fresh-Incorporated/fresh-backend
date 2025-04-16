@@ -25,7 +25,8 @@ module.exports = async function (fastify, opts) {
                     verify_status: 1,
                     enabled: true
                 },
-            }
+            },
+            attributes: ['id', 'name', 'description', 'icon', 'stack_count', 'slots_count', 'price', 'count', 'shopId'],
         })
 
         return reply.status(200).send(products);

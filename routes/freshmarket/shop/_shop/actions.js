@@ -26,7 +26,7 @@ module.exports = async function (fastify, opts) {
             where: {
                 id: request.user.id
             },
-            attributes: { exclude: ['updatedAt'] },
+            attributes: ['id'],
         });
 
         if (!user) {

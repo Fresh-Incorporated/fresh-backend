@@ -6,7 +6,6 @@ module.exports = async function (fastify, opts) {
     fastify.addHook('onRequest', async (request, reply) => {
         const User = fastify.sequelize.model('User');
         const Shop = fastify.sequelize.model('Shop');
-        const Product = fastify.sequelize.model('Product');
         try {
             const accessToken = request.cookies.access_token;
             if (!accessToken) {
@@ -19,7 +18,7 @@ module.exports = async function (fastify, opts) {
                 where: {
                     id: request.user.id
                 },
-                attributes: { exclude: ['updatedAt'] },
+                attributes: ['id'],
             });
 
             if (!user) {
@@ -28,43 +27,39 @@ module.exports = async function (fastify, opts) {
                 });
             }
 
-            request.user = user
-
-            const shop = await Shop.findOne({where: { id: request.params.shop, ownerId: request.user.id }});
+            const shop = await Shop.findOne({ where: { id: request.params.shop, ownerId: request.user.id }, attributes: ['id'] });
 
             if (!shop) {
                 return reply.status(400).send({
                     message: "Магазин не существует или у вас недостаточно прав."
                 });
             }
-
             request.shop = shop
-
-            const product = await Product.findOne({ where: { shopId: shop.id, id: request.params.product } });
-
-            if (!product) {
-                return reply.status(400).send({
-                    message: "Товар не существует или у вас недостаточно прав."
-                });
-            }
-
-            if (product.verify_status !== 1) {
-                return reply.status(400).send({ message: "Товар не проверен" })
-            }
-
-            request.product = product
         } catch (err) {
-            console.error(err)
-            reply.status(500).send({ message: 'Произошла ошибка' });
+            reply.status(401).send({ error: 'Unauthorized' });
         }
     });
 
     fastify.post('/refill', async function (request, reply) {
         const Location = fastify.sequelize.model('Location');
         const LocationCell = fastify.sequelize.model('LocationCell');
+        const Product = fastify.sequelize.model('Product');
         const ProductHistory = fastify.sequelize.model('ProductHistory');
 
-        if (request.product.cell || request.product.refill_status > 0) {
+        const product = await Product.findOne({ where: { shopId: request.shop.id, id: request.params.product }, attributes: ['id', 'cellId', 'verify_status', 'refill_status'] });
+
+        if (!product) {
+            return reply.status(400).send({
+                message: "Товар не существует или у вас недостаточно прав."
+            });
+        }
+
+        if (product.verify_status !== 1) {
+            return reply.status(400).send({ message: "Товар не проверен" })
+        }
+
+
+        if (product.cellId == null || product.refill_status > 0) {
             return reply.status(400).send({ message: "Товар уже пополняется" })
         }
 
@@ -84,16 +79,18 @@ module.exports = async function (fastify, opts) {
                     where: {
                         type: "refill",
                         enabled: true
-                    }
+                    },
+                    attributes: { exclude: ['deletedAt', 'updatedAt', 'createdAt'] },
                 }
             ],
+            attributes: { exclude: ['locationId'] },
         });
 
         if (!cell) {
             return reply.status(400).send({ message: "Все ячейки для пополнения заняты. Попробуйте позже" })
         }
 
-        await request.product.update({
+        await product.update({
             refill_status: 1,
             refillCellId: cell.id,
         })
@@ -112,7 +109,7 @@ module.exports = async function (fastify, opts) {
                 },
             },
             userId: request.user.id, // Тот кто создал запрос на пополнение
-            productId: request.product.id,
+            productId: product.id,
         })
 
         return reply.status(200).send({ message: "Ячейка для пополнения выделена! ", cell })
@@ -120,23 +117,36 @@ module.exports = async function (fastify, opts) {
 
     fastify.post('/refill/end', async function (request, reply) {
         const ProductHistory = fastify.sequelize.model('ProductHistory');
+        const Product = fastify.sequelize.model('Product');
 
-        if (request.product.refill_status === 0) {
+        const product = await Product.findOne({ where: { shopId: request.shop.id, id: request.params.product }, attributes: ['id', 'verify_status', 'refill_status'] });
+
+        if (!product) {
+            return reply.status(400).send({
+                message: "Товар не существует или у вас недостаточно прав."
+            });
+        }
+
+        if (product.verify_status !== 1) {
+            return reply.status(400).send({ message: "Товар не проверен" })
+        }
+
+        if (product.refill_status === 0) {
             return reply.status(400).send({ message: "Товар не пополняется" })
         }
 
-        if (request.product.refill_status === 2) {
+        if (product.refill_status === 2) {
             return reply.status(400).send({ message: "Товар уже пополнен" })
         }
 
-        await request.product.update({
+        await product.update({
             refill_status: 2
         })
 
         await ProductHistory.create({
             action_type: "refill_waiting",
             userId: request.user.id, // Тот кто завершил пополнение
-            productId: request.product.id,
+            productId: product.id,
         })
 
         return reply.status(200).send({ message: "Вы завершили пополнение! Ожидайте пока работники пополнят склад." })
