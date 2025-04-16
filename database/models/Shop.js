@@ -26,7 +26,7 @@ module.exports = async function (fastify, options) {
             allowNull: false,
             defaultValue: 3,
         },
-        verify_status: {
+        verify_status: { // -1 - Не прошёл проверку / 0 - На проверке / 1 - Проверен
             type: DataTypes.SMALLINT,
             defaultValue: 0,
             allowNull: false,
@@ -35,6 +35,11 @@ module.exports = async function (fastify, options) {
             type: DataTypes.DOUBLE,
             allowNull: false,
             defaultValue: 0,
+        },
+        enabled: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: true,
+            allowNull: false,
         },
     }, {
         tableName: 'shops',

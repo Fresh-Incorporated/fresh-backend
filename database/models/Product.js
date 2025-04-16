@@ -33,12 +33,12 @@ module.exports = async function (fastify, options) {
             type: DataTypes.DOUBLE,
             allowNull: false,
         },
-        verify_status: {
+        verify_status: { // -1 - Не прошёл проверку / 0 - На проверке / 1 - Проверен
             type: DataTypes.SMALLINT,
             defaultValue: 0,
             allowNull: false,
         },
-        refill_status: {
+        refill_status: { // 0 - Не пополняется / 1 - Продавец в режиме пополнения / 2 - Ожидает пополнения логистом / 3 - Принято логистом
             type: DataTypes.SMALLINT,
             defaultValue: 0,
             allowNull: false,
@@ -46,6 +46,11 @@ module.exports = async function (fastify, options) {
         count: {
             type: DataTypes.INTEGER,
             defaultValue: 0,
+            allowNull: false,
+        },
+        enabled: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: true,
             allowNull: false,
         },
     }, {

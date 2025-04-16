@@ -30,7 +30,7 @@ module.exports = async function (fastify, options) {
             type: DataTypes.DOUBLE,
             defaultValue: 0
         },
-        fm_worker: {
+        fm_worker: { // 0 - Обычный чел / 1 - Курьер / 2 - Логист / 3 - Секретарь / 4 - Директор
             type: DataTypes.SMALLINT,
             defaultValue: 0
         },

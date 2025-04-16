@@ -100,6 +100,17 @@ module.exports = async function (fastify, opts) {
 
         await ProductHistory.create({
             action_type: "refill_started",
+            data: {
+                cell: {
+                    id: cell.id,
+                    letter: cell.letter,
+                    number: cell.number,
+                    location: {
+                        id: cell.location.id,
+                        name: cell.location.name,
+                    },
+                },
+            },
             userId: request.user.id, // Тот кто создал запрос на пополнение
             productId: request.product.id,
         })

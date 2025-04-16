@@ -14,7 +14,8 @@ module.exports = async function (fastify, opts) {
                 verify_status: 1,
                 count: {
                     [Op.gt]: 0
-                }
+                },
+                enabled: true
             },
             include: {
                 model: Shop,
@@ -22,6 +23,7 @@ module.exports = async function (fastify, opts) {
                 attributes: ["id", "name", "icon"],
                 where: {
                     verify_status: 1,
+                    enabled: true
                 },
             }
         })

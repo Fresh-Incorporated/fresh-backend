@@ -101,6 +101,9 @@ module.exports = async function (fastify, opts) {
 
         await ProductHistory.create({
             action_type: "refill_completed",
+            data: {
+                count: add
+            },
             message: message,
             userId: request.user.id, // Тот кто завершил пополнение товара
             productId: request.product.id,
