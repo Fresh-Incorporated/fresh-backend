@@ -1,5 +1,6 @@
 'use strict'
 
+const {Op} = require("sequelize");
 module.exports = async function (fastify, opts) {
     fastify.get('/products', async function (request, reply) {
         const offset = request.query.offset || 0;
@@ -10,14 +11,17 @@ module.exports = async function (fastify, opts) {
             offset,
             limit: 30,
             where: {
-                verify_status: 1
+                verify_status: 1,
+                count: {
+                    [Op.gt]: 0
+                }
             },
             include: {
                 model: Shop,
                 as: 'shop',
                 attributes: ["id", "name", "icon"],
                 where: {
-                    verify_status: 1
+                    verify_status: 1,
                 },
             }
         })
