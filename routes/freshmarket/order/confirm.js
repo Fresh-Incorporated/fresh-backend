@@ -37,7 +37,8 @@ module.exports = async function (fastify, opts) {
             where: {
                 id: request.params.order,
                 customerId: request.user.id
-            }
+            },
+            attributes: ['id', 'status']
         })
 
         if (!order) {
@@ -58,7 +59,7 @@ module.exports = async function (fastify, opts) {
 
         await OrderHistory.create({
             action_type: "confirmed",
-            userId: request.user.id, // Тот кто подтверид заказ
+            userId: request.user.id, // Тот кто подтвердил заказ
             orderId: order.id,
         })
 

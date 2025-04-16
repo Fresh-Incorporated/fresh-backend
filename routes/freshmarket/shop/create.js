@@ -24,7 +24,7 @@ module.exports = async function (fastify, opts) {
             where: {
                 id: request.user.id
             },
-            attributes: { exclude: ['updatedAt'] },
+            attributes: ['id', 'balance'],
         });
 
         if (!user) {
@@ -33,9 +33,9 @@ module.exports = async function (fastify, opts) {
             });
         }
 
-        const shops = await Shop.findAll({ where: { ownerId: request.user.id } });
+        const shops_count = await Shop.count({ where: { ownerId: request.user.id } });
 
-        const price = 16 + 64 * shops.length;
+        const price = 16 + 64 * shops_count;
 
         if (user.balance < price) {
             return reply.status(402).send({ message: "Недостаточно средств. Не хватает: " + (price - user.balance) });

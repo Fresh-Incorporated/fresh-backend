@@ -20,7 +20,7 @@ module.exports = async function (fastify, opts) {
             where: {
                 id: request.user.id
             },
-            attributes: {exclude: ['updatedAt']},
+            attributes: ['id', 'nickname', 'uuid', 'discordId', 'balance', 'bonuses', 'fm_worker', 'admin', 'createdAt'],
         })
 
         if (!user) {
@@ -43,10 +43,10 @@ module.exports = async function (fastify, opts) {
             where: {
                 id: request.user.id
             },
-            attributes: {exclude: ['updatedAt']},
+            attributes: ['id'],
         })
 
-        if (!user) {
+        if (user == null) {
             return reply.status(400).send({
                 message: "Пользователь не найден.."
             });
@@ -56,20 +56,22 @@ module.exports = async function (fastify, opts) {
             where: {
                 ownerId: request.user.id
             },
+            attributes: ['id', 'name', 'description', 'icon', 'products_limit', 'verify_status', 'balance', 'createdAt'],
             include: [{
                 model: Product,
                 as: 'products',
-                attributes: {exclude: ['updatedAt']},
+                attributes: ['id', 'name', 'description', 'icon', 'stack_count', 'slots_count', 'price', 'verify_status', 'refill_status', 'count', 'createdAt'],
                 include: [{
                     model: LocationCell,
                     as: 'refillCell',
+                    attributes: { exclude: ['locationId'] },
                     include: [{
                         model: Location,
                         as: 'location',
+                        attributes: { exclude: ['deletedAt', 'updatedAt', 'createdAt'] },
                     }]
                 }]
             }],
-            attributes: {exclude: ['updatedAt']},
         });
 
         return reply.status(200).send(shops);
@@ -87,7 +89,7 @@ module.exports = async function (fastify, opts) {
             // Получение пользователя
             const user = await User.findOne({
                 where: { id: request.user.id },
-                attributes: { exclude: ['updatedAt'] },
+                attributes: ['id'],
             });
 
             if (!user) {
@@ -97,28 +99,28 @@ module.exports = async function (fastify, opts) {
             // Получение заказов
             const orders = await Order.findAll({
                 where: { customerId: request.user.id },
+                attributes: ['id', 'type', 'world', 'x', 'y', 'z', 'data', 'price', 'status', 'paid', 'createdAt'],
                 include: [
                     {
                         model: LocationCell,
                         as: 'branchCell',
-                        attributes: { exclude: ['updatedAt', 'createdAt'] },
                     },
                     {
                         model: Location,
                         as: 'branch',
-                        attributes: { exclude: ['updatedAt', 'createdAt'] },
+                        attributes: { exclude: ['deletedAt'] },
                     },
                     {
                         model: OrderHistory,
                         as: 'history',
-                        attributes: { exclude: ['updatedAt'] },
+                        attributes: ['id', 'action_type', 'message', 'createdAt'],
                         include: {
                             model: User,
-                            as: "user"
+                            as: "user",
+                            attributes: ['id', 'nickname', 'discordId', 'uuid']
                         }
                     }
                 ],
-                attributes: { exclude: ['updatedAt'] },
             });
 
             // Сбор уникальных productId из заказов
