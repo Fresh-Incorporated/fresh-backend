@@ -95,7 +95,7 @@ module.exports = async function (fastify, opts) {
             orderId: request.order.id,
         })
 
-        return reply.status(200).send({product: request.product, message: "Задача на доставку заказа принята!"});
+        return reply.status(200).send({  message: "Задача на доставку заказа принята!"});
     });
 
     fastify.post('/deliver/end', async function (request, reply) {
@@ -116,6 +116,6 @@ module.exports = async function (fastify, opts) {
             orderId: request.order.id,
         })
 
-        return reply.status(200).send({product: request.product, message: "Задача на доставку заказа завершена!"});
+        return reply.status(200).send({ message: "Задача на доставку заказа завершена!"});
     });
 };

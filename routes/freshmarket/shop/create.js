@@ -35,7 +35,7 @@ module.exports = async function (fastify, opts) {
 
         const shops = await Shop.findAll({ where: { ownerId: request.user.id } });
 
-        const price = 16 + 32 * shops.length;
+        const price = 16 + 64 * shops.length;
 
         if (user.balance < price) {
             return reply.status(402).send({ message: "Недостаточно средств. Не хватает: " + (price - user.balance) });
