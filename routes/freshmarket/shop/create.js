@@ -33,6 +33,18 @@ module.exports = async function (fastify, opts) {
             });
         }
 
+        if (request.query.name < 3 || request.query.name > 16) {
+            return reply.status(400).send({
+                message: "Длинна названия должна быть в пределах 3-16 символов."
+            });
+        }
+
+        if (request.query.description > 240) {
+            return reply.status(400).send({
+                message: "Длинна описания должна быть не более 240 символов."
+            });
+        }
+
         const shops_count = await Shop.count({ where: { ownerId: request.user.id } });
 
         const price = 16 + 64 * shops_count;
