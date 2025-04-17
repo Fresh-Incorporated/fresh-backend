@@ -62,6 +62,10 @@ module.exports = async function (fastify, opts) {
             return reply.status(400).send({message: "Нельзя удалить товар который есть на складе!"});
         }
 
+        if (request.product.refill_status > 0) {
+            return reply.status(400).send({message: "Нельзя удалить товар который пополняется!"});
+        }
+
         const order = await Order.findOne({
             where: {
                 status: { [Op.lt]: 2 },
