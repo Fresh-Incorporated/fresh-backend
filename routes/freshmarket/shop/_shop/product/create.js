@@ -1,18 +1,18 @@
 'use strict'
 
-const { uploadToS3 } = require("../../../../../utils/s3Util");
+const {uploadToS3} = require("../../../../../utils/s3Util");
 const {Sequelize, Op} = require("sequelize");
 module.exports = async function (fastify, opts) {
     fastify.addHook('onRequest', async (request, reply) => {
         try {
             const accessToken = request.cookies.access_token;
             if (!accessToken) {
-                return reply.status(401).send({ error: 'Missing access token' });
+                return reply.status(401).send({error: 'Missing access token'});
             }
 
             request.user = fastify.jwt.verify(accessToken);
         } catch (err) {
-            reply.status(401).send({ error: 'Unauthorized' });
+            reply.status(401).send({error: 'Unauthorized'});
         }
     });
 
@@ -31,13 +31,40 @@ module.exports = async function (fastify, opts) {
             attributes: ['id'],
         });
 
+        if (request.query.name < 3 || request.query.name > 24) {
+            return reply.status(400).send({
+                message: "Длинна названия должна быть в пределах 3-24 символов."
+            });
+        }
+
+        if (request.query.description > 240) {
+            return reply.status(400).send({
+                message: "Длинна описания должна быть не более 240 символов."
+            });
+        }
+
+        if (request.query.stack_count < 1 || request.query.stack_count > 64) {
+            return reply.status(400).send({
+                message: "Кол-во предметов в 1 слоте должно быть в пределах 1-64."
+            });
+        }
+
+        if (request.query.slots_count < 1 || request.query.slots_count > 27) {
+            return reply.status(400).send({
+                message: "Кол-во слотов еденицы товара должно быть в пределах 1-27."
+            });
+        }
+
         if (!user) {
             return reply.status(400).send({
                 message: "Пользователь не найден."
             });
         }
 
-        const shop = await Shop.findOne({ where: { id: request.params.shop, ownerId: request.user.id }, attributes: ['id', 'products_limit'] });
+        const shop = await Shop.findOne({
+            where: {id: request.params.shop, ownerId: request.user.id},
+            attributes: ['id', 'products_limit']
+        });
 
         if (!shop) {
             return reply.status(400).send({
@@ -45,16 +72,16 @@ module.exports = async function (fastify, opts) {
             });
         }
 
-        const products_count = await Product.count({ where: { shopId: shop.id } });
+        const products_count = await Product.count({where: {shopId: shop.id}});
 
-        if (products_count>= shop.products_limit) {
-            return reply.status(402).send({ message: "Создан максимум товаров." });
+        if (products_count >= shop.products_limit) {
+            return reply.status(402).send({message: "Создан максимум товаров."});
         }
 
         // Подбор ячейки
         const cell = await LocationCell.findOne({
             where: {
-                slots: { [Op.gt]: request.query.slots_count },
+                slots: {[Op.gt]: request.query.slots_count},
                 id: {
                     [Op.notIn]: Sequelize.literal(
                         `(SELECT DISTINCT "cellId" FROM "products" WHERE "cellId" IS NOT NULL)`
@@ -87,12 +114,12 @@ module.exports = async function (fastify, opts) {
             }
 
             if (file.size > 2 * 1024 * 1024) {
-                return reply.status(400).send({ message: 'Иконка должна быть не более 2 МБ!' })
+                return reply.status(400).send({message: 'Иконка должна быть не более 2 МБ!'})
             }
             if (file) {
                 const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg'];
                 if (!allowedMimeTypes.includes(file.mimetype)) {
-                    return reply.status(400).send({ message: 'Допускаются только изображения форматов JPEG, JPG или PNG.' });
+                    return reply.status(400).send({message: 'Допускаются только изображения форматов JPEG, JPG или PNG.'});
                 }
                 // Загрузка файла в S3
                 fileUrl = await uploadToS3(file, process.env.S3_BUCKET_NAME, 'fresh/market/product_icon', true);
@@ -133,7 +160,7 @@ module.exports = async function (fastify, opts) {
             });
         } catch (err) {
             console.error(err);
-            return reply.status(500).send({ message: 'Ошибка при создании магазина.' });
+            return reply.status(500).send({message: 'Ошибка при создании магазина.'});
         }
     });
 };
