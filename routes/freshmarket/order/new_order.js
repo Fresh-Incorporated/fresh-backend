@@ -87,6 +87,7 @@ module.exports = async function (fastify, opts) {
         }
 
         let totalPrice = 0;
+        let totalSlots = 0;
 
         // Валидация продуктов и расчёт общей суммы
         for (const product of products) {
@@ -105,6 +106,11 @@ module.exports = async function (fastify, opts) {
             }
 
             totalPrice += productRow.price * product.count;
+            totalSlots += productRow.slots_count * product.count;
+        }
+
+        if (totalSlots > 27) {
+            return reply.status(500).send({message: 'Слишком большой заказ! Мы временно не доставляем более 27 слотов.'});
         }
 
         if (balance < totalPrice) {
