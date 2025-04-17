@@ -85,6 +85,9 @@ module.exports = async function (fastify, opts) {
         const LocationCell = fastify.sequelize.model('LocationCell');
         const Order = fastify.sequelize.model('Order');
         const OrderHistory = fastify.sequelize.model('OrderHistory');
+        const LocationImage = fastify.sequelize.model('LocationImage');
+        const LocationCoordinate = fastify.sequelize.model('LocationCoordinate');
+
         try {
             // Получение пользователя
             const user = await User.findOne({
@@ -109,6 +112,18 @@ module.exports = async function (fastify, opts) {
                         model: Location,
                         as: 'branch',
                         attributes: { exclude: ['deletedAt'] },
+                        include: [
+                            {
+                                model: LocationImage,
+                                as: 'images',
+                                attributes: { exclude: ['createdAt', 'updatedAt'] },
+                            },
+                            {
+                                model: LocationCoordinate,
+                                as: 'coordinates',
+                                attributes: { exclude: ['createdAt', 'updatedAt'] },
+                            }
+                        ]
                     },
                     {
                         model: OrderHistory,
