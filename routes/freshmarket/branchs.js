@@ -13,11 +13,14 @@ module.exports = async function (fastify, opts) {
             },
             include: [{
                 model: LocationCoordinate,
-                as: "coordinates"
+                as: "coordinates",
+                attributes: { exclude: ['locationId', 'updatedAt', 'createdAt'] },
             },{
                 model: LocationImage,
-                as: "images"
-            }]
+                as: "images",
+                attributes: { exclude: ['locationId', 'updatedAt', 'createdAt'] },
+            }],
+            attributes: { exclude: ['deletedAt', 'updatedAt', 'createdAt'] },
         })
 
         return reply.status(200).send(branchs);

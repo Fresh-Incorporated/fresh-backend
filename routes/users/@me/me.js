@@ -42,7 +42,7 @@ module.exports = async function (fastify, opts) {
                     name: "Пополнение баланса",
                     count: "1",
                     price: request.query.value,
-                    comment: "Эти АРы можно вывести обратно без комиссии!"
+                    comment: "Fresh Incorporated",
                 }
             ],
             redirectUrl: process.env.FRONTEND_URL + "/bank/payment/spworlds/completed",

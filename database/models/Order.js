@@ -30,14 +30,14 @@ module.exports = async function (fastify, options) {
             allowNull: true,
         },
         data: {
-            type: DataTypes.JSON,
+            type: DataTypes.JSONB,
             allowNull: false,
         },
         price: {
             type: DataTypes.INTEGER,
             allowNull: false,
         },
-        status: {
+        status: { // 0 - Не принят / 1 - Принят логистом / 2 - Пополнен логиста, поиск курьера / 3 - Принят курьером / 4 - Доставлен / 5 - Подтверждён
             type: DataTypes.INTEGER,
             defaultValue: 0,
             allowNull: false,

@@ -34,7 +34,7 @@ module.exports = async function (fastify, opts) {
             });
         }
 
-        const shop = await Shop.findOne({where: { id: request.params.shop, ownerId: request.user.id }});
+        const shop = await Shop.findOne({ where: { id: request.params.shop, ownerId: request.user.id }, attributes: ['id'] });
 
         if (!shop) {
             return reply.status(400).send({
@@ -50,8 +50,10 @@ module.exports = async function (fastify, opts) {
                 action_type: "ordered",
                 createdAt: {
                     [Op.gte]: sevenDaysAgo
-                }
-            }
+                },
+                shopId: request.params.shop,
+            },
+            attributes: ['id', 'message', 'data', 'createdAt'],
         })
 
         return reply.status(200).send(orderedHistory);

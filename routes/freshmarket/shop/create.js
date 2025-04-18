@@ -24,7 +24,7 @@ module.exports = async function (fastify, opts) {
             where: {
                 id: request.user.id
             },
-            attributes: { exclude: ['updatedAt'] },
+            attributes: ['id', 'balance'],
         });
 
         if (!user) {
@@ -33,9 +33,21 @@ module.exports = async function (fastify, opts) {
             });
         }
 
-        const shops = await Shop.findAll({ where: { ownerId: request.user.id } });
+        if (request.query.name < 3 || request.query.name > 16) {
+            return reply.status(400).send({
+                message: "Длинна названия должна быть в пределах 3-16 символов."
+            });
+        }
 
-        const price = 16 + 32 * shops.length;
+        if (request.query.description > 240) {
+            return reply.status(400).send({
+                message: "Длинна описания должна быть не более 240 символов."
+            });
+        }
+
+        const shops_count = await Shop.count({ where: { ownerId: request.user.id } });
+
+        const price = 16 + 64 * shops_count;
 
         if (user.balance < price) {
             return reply.status(402).send({ message: "Недостаточно средств. Не хватает: " + (price - user.balance) });

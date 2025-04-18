@@ -10,7 +10,7 @@ module.exports = async function (fastify, options) {
             autoIncrement: true
         },
         action_type: {
-            type: DataTypes.STRING,
+            type: DataTypes.ENUM("created", "ordered", "withdraw", "recheck", 'edited'),
             allowNull: false,
         },
         message: {
@@ -18,7 +18,7 @@ module.exports = async function (fastify, options) {
             allowNull: true,
         },
         data: {
-            type: DataTypes.JSON,
+            type: DataTypes.JSONB,
             allowNull: true,
         },
     }, {

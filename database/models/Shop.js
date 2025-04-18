@@ -1,4 +1,5 @@
 const { DataTypes, QueryTypes} = require('sequelize');
+const { v4: uuidv4 } = require('uuid');
 
 module.exports = async function (fastify, options) {
     const sequelize = fastify.sequelize;
@@ -26,7 +27,7 @@ module.exports = async function (fastify, options) {
             allowNull: false,
             defaultValue: 3,
         },
-        verify_status: {
+        verify_status: { // -1 - Не прошёл проверку / 0 - На проверке / 1 - Проверен
             type: DataTypes.SMALLINT,
             defaultValue: 0,
             allowNull: false,
@@ -35,6 +36,17 @@ module.exports = async function (fastify, options) {
             type: DataTypes.DOUBLE,
             allowNull: false,
             defaultValue: 0,
+        },
+        tag: {
+            type: DataTypes.STRING,
+            defaultValue: () => uuidv4().replace(/-/g, ''),
+            allowNull: false,
+            unique: true
+        },
+        enabled: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: true,
+            allowNull: false,
         },
     }, {
         tableName: 'shops',
