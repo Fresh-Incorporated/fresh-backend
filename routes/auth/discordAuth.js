@@ -53,11 +53,16 @@ module.exports = async function (fastify, opts) {
       if (!user) {
         // Проверка доступности SPWorlds
         const spwApi = new SPWorlds({ id: process.env.SPW_ID, token: process.env.SPW_TOKEN })
-        const pong = await spwApi.ping()
+        try {
+          const pong = await spwApi.ping()
 
-        if (!pong) {
+          if (!pong) {
+            return reply.status(500).send({ message: 'SPWorlds API не доступен. Попробуйте позже.' });
+          }
+        } catch (err) {
           return reply.status(500).send({ message: 'SPWorlds API не доступен. Попробуйте позже.' });
         }
+
 
         const { username, uuid } = await spwApi.findUser(discordUserData.id);
 
