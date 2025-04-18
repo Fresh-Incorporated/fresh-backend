@@ -90,7 +90,7 @@ module.exports = async function (fastify, opts) {
                 slots: {[Op.gt]: request.query.slots_count},
                 id: {
                     [Op.notIn]: Sequelize.literal(
-                        `(SELECT DISTINCT "cellId" FROM "products" WHERE "cellId" IS NOT NULL)`
+                        `(SELECT DISTINCT "cellId" FROM "products" WHERE "cellId" IS NOT NULL AND "deletedAt" IS NULL)`
                     ),
                 },
             },
