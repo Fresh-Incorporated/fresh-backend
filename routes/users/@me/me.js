@@ -73,7 +73,7 @@ module.exports = async function (fastify, opts) {
         const {receiver} = request.body;
         const amount = parseInt(request.body.amount);
 
-        if (amount < 1 && amount > 1728 && amount != null) {
+        if (amount > 1 && amount < 1729 && amount != null) {
             return reply.status(500).send({ message: 'Сумма должна быть больше 0 и меньше 1729.' });
         }
 
