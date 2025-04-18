@@ -96,6 +96,7 @@ module.exports = async function (fastify, opts) {
 
         await request.product.update({
             refill_status: 0,
+            refillCellId: 0,
             currentRefillerId: null,
         })
 
