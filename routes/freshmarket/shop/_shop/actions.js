@@ -60,6 +60,7 @@ module.exports = async function (fastify, opts) {
         await BalanceHistory.create({
             action_type: "freshmarket_shop_withdraw",
             message: "Вывод средств из магазина " + shop.name + " [" + shop.id + "]",
+            userId: user.id,
             value: value
         })
         return reply.status(200).send({message: "Средства магазина переведены на ваш аккаунт!"});

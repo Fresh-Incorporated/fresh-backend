@@ -28,6 +28,7 @@ module.exports = async function (fastify, opts) {
         await BalanceHistory.create({
             action_type: "deposit",
             message: "Пополнение средств из SPWorlds",
+            userId: id,
             value: amount
         })
     })
