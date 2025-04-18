@@ -67,6 +67,16 @@ module.exports = async function (fastify, opts) {
                             as: 'location'
                         }
                     ]
+                },
+                {
+                    model: LocationCell,
+                    as: "refillCell",
+                    include: [
+                        {
+                            model: Location,
+                            as: 'location'
+                        }
+                    ]
                 }
             ]
         });
