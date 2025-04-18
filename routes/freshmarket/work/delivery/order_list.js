@@ -26,7 +26,7 @@ module.exports = async function (fastify, opts) {
                 });
             }
 
-            if (request.user.fm_worker < 2) {
+            if (request.user.fm_worker < 1) {
                 return reply.status(403).send({
                     message: "Недостаточно прав."
                 });
