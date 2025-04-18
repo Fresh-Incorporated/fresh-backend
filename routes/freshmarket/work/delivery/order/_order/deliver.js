@@ -107,6 +107,7 @@ module.exports = async function (fastify, opts) {
 
         await request.order.update({
             status: 4,
+            deliverCellId: null,
             currentWorkerId: null,
         })
 
