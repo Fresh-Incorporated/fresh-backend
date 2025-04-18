@@ -1,11 +1,12 @@
 'use strict'
 
-const { uploadToS3 } = require("../../../../utils/s3Util");
+const { uploadToS3 } = require("../../../../../../utils/s3Util");
 module.exports = async function (fastify, opts) {
     fastify.addHook('onRequest', async (request, reply) => {
         try {
             const accessToken = request.cookies.access_token;
             const Shop = fastify.sequelize.model('Shop');
+            const Product = fastify.sequelize.model('Product');
             if (!accessToken) {
                 return reply.status(401).send({ error: 'Missing access token' });
             }
@@ -20,13 +21,17 @@ module.exports = async function (fastify, opts) {
                 });
             }
 
-            if (shop.verify_status === 0) {
+            request.shop = shop
+
+            const product = await Product.findOne({ where: { shopId: request.shop.id, id: request.params.product } });
+
+            if (product.verify_status === 0) {
                 return reply.status(400).send({
-                    message: "Ваш магазин ещё не успел пройти прошлую проверку! Дождитесь её завершения и попробуйте снова. "
+                    message: "Товар ещё не успел пройти прошлую проверку! Дождитесь её завершения и попробуйте снова. "
                 });
             }
 
-            request.shop = shop
+            request.product = product
         } catch (err) {
             reply.status(401).send({ error: 'Unauthorized' });
         }
@@ -34,8 +39,8 @@ module.exports = async function (fastify, opts) {
 
     fastify.post('/edit', async function (request, reply) {
         const User = fastify.sequelize.model('User');
-        const Shop = fastify.sequelize.model('Shop');
-        const ShopHistory = fastify.sequelize.model('ShopHistory');
+        const Product = fastify.sequelize.model('Product');
+        const ProductHistory = fastify.sequelize.model('ProductHistory');
 
         const user = await User.findOne({
             where: {
@@ -56,26 +61,15 @@ module.exports = async function (fastify, opts) {
             });
         }
 
-        if (request.query.tag) {
-            if (request.query.tag.length < 3 || request.query.tag.length > 16) {
-                return reply.status(400).send({
-                    message: "Длина тега магазина должна быть в пределах 3-16 символов."
-                });
-            }
-
-            // Проверка на допустимые символы (только английские буквы и цифры)
-            if (!/^[a-zA-Z0-9]+$/.test(request.query.tag)) {
-                return reply.status(400).send({
-                    message: "Тег магазина может содержать только английские буквы и цифры."
-                });
-            }
-
-            request.query.tag = request.query.tag.toLowerCase();
-        }
-
         if (request.query.description && (request.query.description > 240)) {
             return reply.status(400).send({
                 message: "Длина описания должна быть не более 240 символов."
+            });
+        }
+
+        if (request.query.price && (parseInt(request.query.price) < 1 || parseInt(request.query.price) > 1728)) {
+            return reply.status(400).send({
+                message: "Цена товара должна быть от 1 до 1728."
             });
         }
 
@@ -115,34 +109,41 @@ module.exports = async function (fastify, opts) {
             if (request.query.description && request.shop.description !== request.query.description) {
                 changes.description = request.query.description;
             }
-            if (request.query.tag && request.shop.tag !== request.query.tag) {
-                changes.tag = request.query.tag;
-            }
             if (fileUrl !== process.env.DEFAULT_SHOP_ICON) {
                 changes.icon = fileUrl;
             }
-            const currentShop = await Shop.update(changes, {
+            if (request.query.price && request.shop.price !== request.query.price) {
+                changes.price = request.query.price;
+                if (Object.keys(changes).length <= 2 && request.product.verify_status === 1) {
+                    changes.verify_status = 1
+                }
+            }
+            const currentProduct = await Product.update(changes, {
                 where: {
-                    id: request.shop.id
+                    id: request.product.id
                 }
             });
 
-            await ShopHistory.create({
+            await ProductHistory.create({
                 action_type: "edited",
                 userId: user.id,
-                shopId: currentShop.id,
+                productId: request.product.id,
                 data: changes,
             })
 
-            await ShopHistory.create({
-                action_type: "recheck",
-                userId: user.id,
-                shopId: currentShop.id,
-            })
+            if (changes.verify_status === 0) {
+                await ProductHistory.create({
+                    action_type: "recheck",
+                    userId: user.id,
+                    productId: request.product.id,
+                })
+                return reply.status(200).send({
+                    message: 'Товар успешно отправлен на проверку!'
+                });
+            }
 
             return reply.status(200).send({
-                message: 'Магазин успешно отправлен на проверку!',
-                shop: currentShop,
+                message: 'Цена товара изменена без проверок!'
             });
         } catch (err) {
             console.error(err);
