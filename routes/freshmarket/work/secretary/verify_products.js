@@ -42,6 +42,7 @@ module.exports = async function (fastify, opts) {
 
         const product = await Product.findOne({
             where: {
+                id: request.params.id,
                 verify_status: 0
             },
             include: [
@@ -91,6 +92,7 @@ module.exports = async function (fastify, opts) {
 
         const product = await Product.findOne({
             where: {
+                id: request.params.id,
                 verify_status: 0
             },
             include: [
