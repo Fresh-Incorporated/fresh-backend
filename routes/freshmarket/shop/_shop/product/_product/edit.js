@@ -1,6 +1,6 @@
 'use strict'
 
-const { uploadToS3 } = require("../../../../../../utils/s3Util");
+const {uploadToS3} = require("../../../../../../utils/s3Util");
 module.exports = async function (fastify, opts) {
     fastify.addHook('onRequest', async (request, reply) => {
         try {
@@ -8,12 +8,15 @@ module.exports = async function (fastify, opts) {
             const Shop = fastify.sequelize.model('Shop');
             const Product = fastify.sequelize.model('Product');
             if (!accessToken) {
-                return reply.status(401).send({ error: 'Missing access token' });
+                return reply.status(401).send({error: 'Missing access token'});
             }
 
             request.user = fastify.jwt.verify(accessToken);
 
-            const shop = await Shop.findOne({ where: { id: request.params.shop, ownerId: request.user.id }, attributes: ['id', 'name', 'description', 'icon', 'tag', 'verify_status'] });
+            const shop = await Shop.findOne({
+                where: {id: request.params.shop, ownerId: request.user.id},
+                attributes: ['id', 'name', 'description', 'icon', 'tag', 'verify_status']
+            });
 
             if (!shop) {
                 return reply.status(400).send({
@@ -23,7 +26,7 @@ module.exports = async function (fastify, opts) {
 
             request.shop = shop
 
-            const product = await Product.findOne({ where: { shopId: request.shop.id, id: request.params.product } });
+            const product = await Product.findOne({where: {shopId: request.shop.id, id: request.params.product}});
 
             if (product.verify_status === 0) {
                 return reply.status(400).send({
@@ -33,7 +36,7 @@ module.exports = async function (fastify, opts) {
 
             request.product = product
         } catch (err) {
-            reply.status(401).send({ error: 'Unauthorized' });
+            reply.status(401).send({error: 'Unauthorized'});
         }
     });
 
@@ -85,12 +88,12 @@ module.exports = async function (fastify, opts) {
             }
 
             if (file.size > 2 * 1024 * 1024) {
-                return reply.status(400).send({ message: 'Иконка должна быть не более 2 МБ!' })
+                return reply.status(400).send({message: 'Иконка должна быть не более 2 МБ!'})
             }
             if (file) {
                 const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg'];
                 if (!allowedMimeTypes.includes(file.mimetype)) {
-                    return reply.status(400).send({ message: 'Допускаются только изображения форматов JPEG, JPG или PNG.' });
+                    return reply.status(400).send({message: 'Допускаются только изображения форматов JPEG, JPG или PNG.'});
                 }
 
                 fileUrl = await uploadToS3(file, process.env.S3_BUCKET_NAME, 'fresh/market/shop_icon', true);
@@ -118,11 +121,13 @@ module.exports = async function (fastify, opts) {
                     changes.verify_status = 1
                 }
             }
-            const currentProduct = await Product.update(changes, {
+            await Product.update(changes, {
                 where: {
                     id: request.product.id
                 }
             });
+
+            delete changes.verify_status;
 
             await ProductHistory.create({
                 action_type: "edited",
@@ -147,7 +152,7 @@ module.exports = async function (fastify, opts) {
             });
         } catch (err) {
             console.error(err);
-            return reply.status(500).send({ message: 'Ошибка при создании магазина.' });
+            return reply.status(500).send({message: 'Ошибка при создании магазина.'});
         }
     });
 };
