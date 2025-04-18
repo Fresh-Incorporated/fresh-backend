@@ -10,7 +10,7 @@ module.exports = async function (fastify, options) {
             autoIncrement: true
         },
         action_type: {
-            type: DataTypes.ENUM("created", "accepted", "declined", "refill_started", "refill_waiting", "refill_picked", "refill_completed", "recheck"),
+            type: DataTypes.ENUM("created", "accepted", "declined", "refill_started", "refill_waiting", "refill_picked", "refill_completed", "recheck", "edited"),
             allowNull: false,
         },
         message: {
