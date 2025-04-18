@@ -72,6 +72,7 @@ module.exports = async function (fastify, opts) {
                     }]
                 }]
             }],
+            order: [['id', 'ASC']]
         });
 
         return reply.status(200).send(shops);
