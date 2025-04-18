@@ -15,7 +15,7 @@ module.exports = async function (fastify, opts) {
 
             const shop = await Shop.findOne({
                 where: {id: request.params.shop, ownerId: request.user.id},
-                attributes: ['id', 'name', 'description', 'icon', 'tag', 'verify_status']
+                attributes: ['id', 'name', 'description', 'icon', 'tag', 'verify_status', 'price']
             });
 
             if (!shop) {
