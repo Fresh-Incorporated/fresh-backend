@@ -77,6 +77,25 @@ module.exports = async function (fastify, opts) {
             return reply.status(500).send({ message: 'Сумма должна быть больше 0 и меньше 1729.' });
         }
 
+        const user = await User.findOne({
+            where: {
+                id: request.user.id
+            },
+            attributes: ["id", "balance"]
+        })
+
+        if (!user) {
+            return reply.status(400).send({
+                message: "Пользователь не найден."
+            });
+        }
+
+        if (parseInt(user.balance) < amount) {
+            return reply.status(400).send({
+                message: "Недостаточно средств."
+            });
+        }
+
         await spwApi.createTransaction({
             receiver: receiver,
             amount: amount,
