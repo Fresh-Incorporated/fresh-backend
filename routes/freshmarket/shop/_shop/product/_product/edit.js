@@ -64,9 +64,9 @@ module.exports = async function (fastify, opts) {
             });
         }
 
-        if (request.query.name && (request.query.name < 3 || request.query.name > 16)) {
+        if (request.query.name && (request.query.name < 3 || request.query.name > 24)) {
             return reply.status(400).send({
-                message: "Длина названия должна быть в пределах 3-16 символов."
+                message: "Длина названия должна быть в пределах 3-24 символов."
             });
         }
 
