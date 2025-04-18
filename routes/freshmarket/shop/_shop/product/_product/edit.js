@@ -15,7 +15,7 @@ module.exports = async function (fastify, opts) {
 
             const shop = await Shop.findOne({
                 where: {id: request.params.shop, ownerId: request.user.id},
-                attributes: ['id', 'name', 'description', 'icon', 'tag', 'verify_status', 'price']
+                attributes: ['id', 'name', 'description', 'icon', 'tag', 'verify_status']
             });
 
             if (!shop) {
@@ -112,16 +112,16 @@ module.exports = async function (fastify, opts) {
             const changes = {
                 verify_status: 0
             }
-            if (request.query.name && request.shop.name !== request.query.name) {
+            if (request.query.name && request.product.name !== request.query.name) {
                 changes.name = request.query.name;
             }
-            if (request.query.description && request.shop.description !== request.query.description) {
+            if (request.query.description && request.product.description !== request.query.description) {
                 changes.description = request.query.description;
             }
             if (fileUrl !== process.env.DEFAULT_SHOP_ICON) {
                 changes.icon = fileUrl;
             }
-            if (request.query.price && request.shop.price !== request.query.price) {
+            if (request.query.price && request.product.price !== request.query.price) {
                 changes.price = request.query.price;
                 if (Object.keys(changes).length <= 2 && request.product.verify_status === 1) {
                     changes.verify_status = 1
