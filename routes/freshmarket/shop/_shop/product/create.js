@@ -43,15 +43,21 @@ module.exports = async function (fastify, opts) {
             });
         }
 
-        if (request.query.stack_count < 1 || request.query.stack_count > 64) {
+        if (parseInt(request.query.stack_count) < 1 || parseInt(request.query.stack_count) > 64) {
             return reply.status(400).send({
                 message: "Кол-во предметов в 1 слоте должно быть в пределах 1-64."
             });
         }
 
-        if (request.query.slots_count < 1 || request.query.slots_count > 27) {
+        if (parseInt(request.query.slots_count) < 1 || parseInt(request.query.slots_count) > 27) {
             return reply.status(400).send({
                 message: "Кол-во слотов еденицы товара должно быть в пределах 1-27."
+            });
+        }
+
+        if (parseInt(request.query.price) < 1 || parseInt(request.query.price) > 1728) {
+            return reply.status(400).send({
+                message: "Кол-во слотов еденицы товара должно быть в пределах 1-1728."
             });
         }
 
