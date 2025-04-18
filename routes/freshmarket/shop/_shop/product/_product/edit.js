@@ -15,7 +15,7 @@ module.exports = async function (fastify, opts) {
 
             const shop = await Shop.findOne({
                 where: {id: request.params.shop, ownerId: request.user.id},
-                attributes: ['id', 'name', 'description', 'icon', 'tag', 'verify_status']
+                attributes: ['id', 'name', 'description', 'icon', 'tag', 'verify_status', 'price']
             });
 
             if (!shop) {
@@ -31,6 +31,12 @@ module.exports = async function (fastify, opts) {
             if (product.verify_status === 0) {
                 return reply.status(400).send({
                     message: "Товар ещё не успел пройти прошлую проверку! Дождитесь её завершения и попробуйте снова. "
+                });
+            }
+
+            if (product.refill_status !== 0) {
+                return reply.status(400).send({
+                    message: "Нельзя изменить товар который пополняется. "
                 });
             }
 
