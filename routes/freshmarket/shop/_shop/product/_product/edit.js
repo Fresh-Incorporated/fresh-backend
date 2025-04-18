@@ -34,6 +34,12 @@ module.exports = async function (fastify, opts) {
                 });
             }
 
+            if (product.refill_status !== 0) {
+                return reply.status(400).send({
+                    message: "Нельзя изменить товар который пополняется. "
+                });
+            }
+
             request.product = product
         } catch (err) {
             reply.status(401).send({error: 'Unauthorized'});
