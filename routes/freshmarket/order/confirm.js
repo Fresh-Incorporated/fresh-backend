@@ -55,7 +55,7 @@ module.exports = async function (fastify, opts) {
 
         await order.update({
             status: 5,
-            deliverCellId: null,
+            branchCellId: null,
         })
 
         await OrderHistory.create({
