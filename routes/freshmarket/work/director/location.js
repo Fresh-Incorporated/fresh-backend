@@ -85,9 +85,9 @@ module.exports = async function (fastify, opts) {
             // Проверяем, является ли поле файлом
             if (field.file) {
                 // Проверка на тип файла
-                const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+                const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/svg+xml', 'image/webp'];
                 if (!allowedMimeTypes.includes(field.mimetype)) {
-                    return reply.status(400).send({message: 'Допускаются только изображения форматов JPEG, JPG или PNG.'});
+                    return reply.status(400).send({message: 'Допускаются только изображения форматов JPEG, JPG, PNG, SVG или WEBP.'});
                 }
 
                 const buffer = await field.toBuffer();
