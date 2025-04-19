@@ -69,9 +69,9 @@ module.exports = async function (fastify, opts) {
                 return reply.status(400).send({ message: 'Иконка должна быть не более 2 МБ!' })
             }
             if (file) {
-                const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+                const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/svg+xml', 'image/webp'];
                 if (!allowedMimeTypes.includes(file.mimetype)) {
-                    return reply.status(400).send({ message: 'Допускаются только изображения форматов JPEG, JPG или PNG.' });
+                    return reply.status(400).send({ message: 'Допускаются только изображения форматов JPEG, JPG, PNG, SVG или WEBP.' });
                 }
                 // Загрузка файла в S3
                 fileUrl = await uploadToS3(file, process.env.S3_BUCKET_NAME, 'fresh/market/shop_icon', true);
