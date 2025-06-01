@@ -107,7 +107,7 @@ module.exports = async function (fastify, opts) {
             attributes: ['id']
         });
 
-        let fileUrl = request.query?.minecraft_icon ? `https://img.zaralx.ru/v1/minecraft/${request.query?.minecraft_icon}` : process.env.DEFAULT_SHOP_ICON; // Путь по умолчанию
+        let fileUrl = request.query?.minecraft_icon ? `https://assets.zaralx.ru/api/v1/minecraft/vanilla/item/${request.query?.minecraft_icon}/icon` : process.env.DEFAULT_SHOP_ICON; // Путь по умолчанию
 
         try {
             // Проверка на наличие загруженного файла
