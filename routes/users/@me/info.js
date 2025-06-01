@@ -164,4 +164,35 @@ module.exports = async function (fastify, opts) {
             return reply.status(500).send({ message: "Ошибка сервера", error: error.message });
         }
     })
+
+    fastify.get('/history/balance', async function (request, reply) {
+        const { offset } = request.query;
+        const User = fastify.sequelize.model('User');
+        const BalanceHistory = fastify.sequelize.model('BalanceHistory');
+
+        const user = await User.findOne({
+            where: {
+                id: request.user.id
+            },
+            attributes: ['id'],
+        })
+
+        if (user == null) {
+            return reply.status(400).send({
+                message: "Пользователь не найден.."
+            });
+        }
+
+        const history = await BalanceHistory.findAll({
+            where: {
+                userId: request.user.id
+            },
+            attributes: ['id', 'action_type', 'message', 'value', 'createdAt'],
+            order: [['createdAt', 'DESC']],
+            limit: 20,
+            offset: offset,
+        });
+
+        return reply.status(200).send(history);
+    })
 }
