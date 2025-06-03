@@ -19,6 +19,7 @@ module.exports = async function (fastify, opts) {
         const User = fastify.sequelize.model('User');
         const Shop = fastify.sequelize.model('Shop');
         const ShopHistory = fastify.sequelize.model('ShopHistory');
+        const BalanceHistory = fastify.sequelize.model('BalanceHistory');
 
         const user = await User.findOne({
             where: {
@@ -99,6 +100,13 @@ module.exports = async function (fastify, opts) {
                     description: newShop.description,
                     products_limit: newShop.products_limit,
                 },
+            })
+
+            await BalanceHistory.create({
+                action_type: "freshmarket_pay",
+                message: "Покупка магазина FreshMarket",
+                userId: request.user.id,
+                value: -price,
             })
 
             return reply.status(200).send({
