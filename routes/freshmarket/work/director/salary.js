@@ -41,30 +41,45 @@ module.exports = async function (fastify, opts) {
         const OrderHistory = fastify.sequelize.model('OrderHistory');
         const ProductHistory = fastify.sequelize.model('ProductHistory');
         const User = fastify.sequelize.model('User');
+        const Salary = fastify.sequelize.model('Salary');
 
-        const orders = await Order.findAll({
+        const percents = { delivery: 20, logistic: 40, secretary: 20, director: 20 }
+
+
+        const lastCompleted = await Salary.findOne({
+            limit: 1,
+            order: [['completedAt', 'DESC']],
+            attributes: ['completedAt']
+        }) || { completedAt: 0 };
+
+
+
+        const ordersHistory = await OrderHistory.findAll({
             where: {
-                id: {
-                    [Op.gte]: 1
-                },
-                status: 5,
-            },
-            attributes: ["id", "type", "price", "status", "customerId"],
-            include: {
-                model: OrderHistory,
-                as: "history",
-                attributes: ["id", "action_type", "userId"],
-                include: {
-                    model: User,
-                    as: "user",
-                    attributes: ["id", "nickname", "uuid", "discordId"],
+                createdAt: {
+                    [Op.gt]: lastCompleted.completedAt
                 }
-            }
+            },
+            attributes: ["id", "action_type", "userId"],
+            include: [{
+                model: Order,
+                as: "order",
+                attributes: ["id", "type", "price", "status", "customerId"],
+                required: true
+            }, {
+                model: User,
+                as: "user",
+                attributes: ["id", "nickname", "uuid", "discordId"]
+            }]
         });
+        console.log(ordersHistory)
 
         const productRefills = await ProductHistory.findAll({
             where: {
-                action_type: "refill_completed"
+                action_type: "refill_completed",
+                createdAt: {
+                    [Op.gt]: lastCompleted.completedAt
+                }
             },
             attributes: ["id", "action_type", "userId", "productId"],
             include: [
@@ -76,42 +91,47 @@ module.exports = async function (fastify, opts) {
             ]
         })
 
-        const totalSalary = orders.reduce((acc, order) => acc + (order.price * 0.1), 0);
+        let recordedOrders = [];
+        let totalSalary = 0;
 
+        for (const orderHistory of ordersHistory) {
+            if (!recordedOrders.includes(orderHistory.order.id)) {
+                totalSalary = totalSalary + (orderHistory.order.price * 0.1)
+                recordedOrders.push(orderHistory.order.id);
+            }
+
+        }
         const salaries = []
-        for (const order of orders) {
-            for (const history of order.history) {
-                let salary;
-                if (history.action_type === "collect_finished" ||
-                    history.action_type === "deliver_finished") {
-                    salary = salaries.find(s => s.id === history.user.id);
-                    if (!salary) {
-                        salary = {
-                            id: history.user.id,
-                            pays: {}
-                        }
-                        salaries.push(salary);
+        for (const history of ordersHistory) {
+            let salary;
+            if (history.action_type === "collect_finished" ||
+                history.action_type === "deliver_finished") {
+                salary = salaries.find(s => s.id === history.user.id);
+                if (!salary) {
+                    salary = {
+                        id: history.user.id,
+                        pays: {}
                     }
+                    salaries.push(salary);
                 }
-                if (history.action_type === "collect_finished") {
-                    const pay = totalSalary * 0.2;
-                    if (!salary.pays.logic) {
-                        salary.pays.logic = {
-                            pay
-                        }
-                    } else {
-                        salary.pays.logic.pay += pay;
+            }
+            if (history.action_type === "collect_finished") {
+                const pay = history.order.price * 0.1 * 0.2;
+                if (!salary.pays.logic) {
+                    salary.pays.logic = {
+                        pay
                     }
-                } else if (history.action_type === "deliver_finished") {
-                    const pay = totalSalary * 0.2;
-                    console.log(pay)
-                    if (!salary.pays.deliver) {
-                        salary.pays.deliver = {
-                            pay
-                        }
-                    } else {
-                        salary.pays.deliver.pay += pay;
+                } else {
+                    salary.pays.logic.pay += pay;
+                }
+            } else if (history.action_type === "deliver_finished") {
+                const pay = history.order.price * 0.1 * 0.2;
+                if (!salary.pays.deliver) {
+                    salary.pays.deliver = {
+                        pay
                     }
+                } else {
+                    salary.pays.deliver.pay += pay;
                 }
             }
         }
@@ -162,5 +182,52 @@ module.exports = async function (fastify, opts) {
             totalSalary,
             salaries
         });
+    });
+
+    fastify.post('/salary/complete', async function (request, reply) {
+        const salaries = request.body;
+
+
+        const User = fastify.sequelize.model('User');
+        const Salary = fastify.sequelize.model('Salary');
+
+        const lastCompleted = await Salary.findOne({
+            limit: 1,
+            order: [['completedAt', 'DESC']],
+            attributes: ['completedAt']
+        }) || { completedAt: 0 };
+
+        let pays = {}
+
+        await Promise.all(salaries.map(async (salary) => {
+            const user = await User.findOne({
+                where: {
+                    id: salary.id
+                }
+            });
+
+            const filteredPays = Object.fromEntries(
+                Object.entries(salary.pays)
+                    .filter(([role, obj]) => obj.pay !== 0)
+            );
+
+            pays[user.id] = filteredPays;
+        }));
+
+        await Salary.create({
+            createdAt: lastCompleted.completedAt,
+            completedAt: new Date(),
+            data: { pays },
+        });
+
+        for (const userId of Object.keys(pays)) {
+            const pay = pays[userId];
+
+            const totalPay = Object.values(pay).reduce((sum, obj) => sum + obj.pay, 0);
+
+            await User.increment({ balance: totalPay }, { where: { id: userId } })
+        }
+
+        return reply.status(200).send();
     });
 };
