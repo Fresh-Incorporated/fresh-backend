@@ -39,11 +39,36 @@ module.exports = async function (fastify, opts) {
     fastify.get('/stats', async function (request, reply) {
         const Order = fastify.sequelize.model('Order');
         const OrderHistory = fastify.sequelize.model('OrderHistory');
-        const ProductHistory = fastify.sequelize.model('ProductHistory');
+        const Shop = fastify.sequelize.model('Shop');
+        const Product = fastify.sequelize.model('Product');
         const User = fastify.sequelize.model('User');
+        const Location = fastify.sequelize.model('Location');
+        const LocationCell = fastify.sequelize.model('LocationCell');
+
+        const storages = await Location.findAll({
+            where: {
+                type: "storage"
+            },
+            attributes: ['id']
+        })
 
         const totalOrders = await Order.count()
+        const totalCells = await LocationCell.count({
+            where: {
+                locationId: {
+                    [Op.in]: storages.map(s => s.id)
+                }
+            }
+        });
+        const usedCells = await Product.count({
+            where: {
+                cellId: {
+                    [Op.not]: null
+                }
+            }
+        });
+        const shopCells = await Shop.sum("products_limit");
 
-        return reply.status(200).send({totalOrders});
+        return reply.status(200).send({totalOrders, totalCells, usedCells, shopCells});
     });
 };
