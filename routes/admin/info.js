@@ -2,15 +2,35 @@
 
 module.exports = async function (fastify, opts) {
     fastify.addHook('onRequest', async (request, reply) => {
+        const User = fastify.sequelize.model('User');
         try {
-            const accessToken = request.cookies.access_token;
+            const accessToken = request.cookies.access_token
             if (!accessToken) {
-                return reply.status(401).send({ error: 'Missing access token' });
+                return reply.status(401).send({error: 'Missing access token'})
             }
 
-            request.user = fastify.jwt.verify(accessToken);
+            request.user = fastify.jwt.verify(accessToken)
+
+            request.user = await User.findOne({
+                where: {
+                    id: request.user.id
+                },
+                attributes: { exclude: ['updatedAt'] },
+            });
+
+            if (!request.user) {
+                return reply.status(400).send({
+                    message: "Пользователь не найден."
+                });
+            }
+
+            if (!request.user.admin) {
+                return reply.status(400).send({
+                    message: "Недостаточно прав."
+                });
+            }
         } catch (err) {
-            reply.status(401).send({ error: 'Unauthorized' });
+            reply.status(401).send({error: 'Unauthorized'})
         }
     });
 
@@ -40,7 +60,7 @@ module.exports = async function (fastify, opts) {
 
         });
 
-        let totalShopAP = 0;
+        let totalSpentOnShops = 0;
         const totalBalanceUsers = users.reduce((sum, user) => sum + user.balance, 0);
         const totalBalanceShops = shops.reduce((sum, shop) => sum + shop.balance, 0);
 
@@ -48,11 +68,14 @@ module.exports = async function (fastify, opts) {
             const shopCount = await Shop.count({ where: { ownerId: user.id } });
 
             if (shopCount > 0) {
-                const cost = (shopCount * (2 * 16 + 32 * (shopCount - 1))) / 2;
-                totalShopAP += cost;
+                let cost = 0;
+                for (let i = 0; i < shopCount; i++) {
+                    cost += 16 + 64 * i;
+                }
+                totalSpentOnShops += cost;
             }
         }
 
-        return reply.status(200).send({totalShopAP, totalBalanceUsers, totalBalanceShops});
+        return reply.status(200).send({totalSpentOnShops, totalBalanceUsers, totalBalanceShops});
     });
 };
