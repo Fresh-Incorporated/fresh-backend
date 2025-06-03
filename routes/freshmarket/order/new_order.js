@@ -206,7 +206,7 @@ module.exports = async function (fastify, opts) {
                 action_type: "freshmarket_order",
                 message: "Заказ на FreshMarket",
                 userId: request.user.id,
-                value: totalPrice,
+                value: -totalPrice,
             }, {transaction})
 
             await transaction.commit();
