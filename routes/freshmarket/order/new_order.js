@@ -44,6 +44,7 @@ module.exports = async function (fastify, opts) {
         const OrderHistory = fastify.sequelize.model('OrderHistory');
         const ShopHistory = fastify.sequelize.model('ShopHistory');
         const Location = fastify.sequelize.model('Location');
+        const BalanceHistory = fastify.sequelize.model('BalanceHistory');
 
         const {type, branch} = request.body;
         const {balance} = request.user;
@@ -199,6 +200,13 @@ module.exports = async function (fastify, opts) {
                 action_type: "paid",
                 orderId: order.id,
                 userId: request.user.id
+            }, {transaction})
+
+            await BalanceHistory.create({
+                action_type: "freshmarket_order",
+                message: "Заказ на FreshMarket",
+                userId: request.user.id,
+                value: totalPrice,
             }, {transaction})
 
             await transaction.commit();
