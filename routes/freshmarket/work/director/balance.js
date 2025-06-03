@@ -1,21 +1,23 @@
 'use strict'
 
+const {uploadToS3} = require("../../../../utils/s3Util");
+const {Op, literal} = require("sequelize");
 module.exports = async function (fastify, opts) {
     fastify.addHook('onRequest', async (request, reply) => {
         const User = fastify.sequelize.model('User');
         try {
-            const accessToken = request.cookies.access_token
+            const accessToken = request.cookies.access_token;
             if (!accessToken) {
-                return reply.status(401).send({error: 'Missing access token'})
+                return reply.status(401).send({error: 'Missing access token'});
             }
 
-            request.user = fastify.jwt.verify(accessToken)
+            request.user = fastify.jwt.verify(accessToken);
 
             request.user = await User.findOne({
                 where: {
                     id: request.user.id
                 },
-                attributes: { exclude: ['updatedAt'] },
+                attributes: {exclude: ['updatedAt']},
             });
 
             if (!request.user) {
@@ -24,46 +26,38 @@ module.exports = async function (fastify, opts) {
                 });
             }
 
-            if (!request.user.admin) {
-                return reply.status(400).send({
+            if (request.user.fm_worker < 4) {
+                return reply.status(403).send({
                     message: "Недостаточно прав."
                 });
             }
         } catch (err) {
-            reply.status(401).send({error: 'Unauthorized'})
+            reply.status(401).send({error: 'Unauthorized'});
         }
     });
 
     fastify.get('/balance', async function (request, reply) {
-        const User = fastify.sequelize.model('User');
+        const Order = fastify.sequelize.model('Order');
+        const OrderHistory = fastify.sequelize.model('OrderHistory');
+        const ProductHistory = fastify.sequelize.model('ProductHistory');
         const Shop = fastify.sequelize.model('Shop');
+        const User = fastify.sequelize.model('User');
 
-        const user = await User.findOne({
+        const orders = await Order.findAll({
             where: {
-                id: request.user.id,
-                admin: true
+                id: {
+                    [Op.gte]: 1
+                },
             },
-            attributes: { exclude: ['updatedAt'] },
+            attributes: ["id", "type", "price", "status", "customerId"]
         });
-
-        if (!user) {
-            return reply.status(400).send({
-                message: "Пользователь не найден или недостаточно прав."
-            });
-        }
-
         const users = await User.findAll({
-
+            attributes: ["id"]
         });
 
-        const shops = await Shop.findAll({
-
-        });
+        const totalCommissionBalance = orders.reduce((acc, order) => acc + (order.price * 0.1), 0);
 
         let totalSpentOnShops = 0;
-        const totalBalanceUsers = users.reduce((sum, user) => sum + user.balance, 0);
-        const totalBalanceShops = shops.reduce((sum, shop) => sum + shop.balance, 0);
-
         for (const user of users) {
             const shopCount = await Shop.count({ where: { ownerId: user.id } });
 
@@ -76,6 +70,6 @@ module.exports = async function (fastify, opts) {
             }
         }
 
-        return reply.status(200).send({totalSpentOnShops, totalBalanceUsers, totalBalanceShops});
+        return reply.status(200).send({totalCommissionBalance, totalSpentOnShops});
     });
 };
