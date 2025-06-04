@@ -34,7 +34,7 @@ module.exports = async function (fastify, opts) {
         }
     });
 
-    fastify.get('/balance', async function (request, reply) {
+    fastify.get('/stats', async function (request, reply) {
         const User = fastify.sequelize.model('User');
         const Shop = fastify.sequelize.model('Shop');
 
@@ -45,6 +45,8 @@ module.exports = async function (fastify, opts) {
             },
             attributes: { exclude: ['updatedAt'] },
         });
+
+        const totalUsers = await User.count();
 
         if (!user) {
             return reply.status(400).send({
@@ -76,6 +78,6 @@ module.exports = async function (fastify, opts) {
             }
         }
 
-        return reply.status(200).send({totalSpentOnShops, totalBalanceUsers, totalBalanceShops});
+        return reply.status(200).send({totalSpentOnShops, totalBalanceUsers, totalBalanceShops, totalUsers});
     });
 };
