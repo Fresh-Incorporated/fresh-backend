@@ -184,7 +184,7 @@ module.exports = async function (fastify, opts) {
         });
     });
 
-    fastify.post('/salary/complete', async function (request, reply) {
+    fastify.post('/salary/submit', async function (request, reply) {
         const salaries = request.body;
 
 
