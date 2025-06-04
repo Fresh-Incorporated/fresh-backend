@@ -180,12 +180,13 @@ module.exports = async function (fastify, opts) {
 
         return reply.status(200).send({
             totalSalary,
-            salaries
+            salaries,
+            endDatetime: Date.now(),
         });
     });
 
     fastify.post('/salary/submit', async function (request, reply) {
-        const salaries = request.body;
+        const { salaries, endDatetime } = request.body;
 
         const transaction = await fastify.sequelize.transaction();
 
@@ -218,7 +219,7 @@ module.exports = async function (fastify, opts) {
 
             await Salary.create({
                 createdAt: lastCompleted.completedAt,
-                completedAt: new Date(),
+                completedAt: new Date(endDatetime),
                 data: { pays },
                 transaction
             });
