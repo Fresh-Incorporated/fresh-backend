@@ -11,6 +11,7 @@ async function setupDatabase(fastify) {
     const OrderHistoryModel = await require('./models/OrderHistory')(fastify);
     const ShopHistoryModel = await require('./models/ShopHistory')(fastify);
     const BalanceHistoryModel = await require('./models/BalanceHistory')(fastify);
+    const Salary = await require('./models/Salary')(fastify);
 
     UserModel.hasMany(ShopModel, {foreignKey: 'ownerId'});
     ShopModel.belongsTo(UserModel, {foreignKey: 'ownerId', as: 'owner'});
