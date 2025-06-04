@@ -192,6 +192,7 @@ module.exports = async function (fastify, opts) {
 
         const User = fastify.sequelize.model('User');
         const Salary = fastify.sequelize.model('Salary');
+        const BalanceHistory = fastify.sequelize.model('BalanceHistory');
 
         try {
             const lastCompleted = await Salary.findOne({
@@ -220,16 +221,24 @@ module.exports = async function (fastify, opts) {
             await Salary.create({
                 createdAt: lastCompleted.completedAt,
                 completedAt: new Date(endDatetime),
-                data: { pays },
-                transaction
-            });
+                data: { pays }
+            }, {transaction});
 
             for (const userId of Object.keys(pays)) {
                 const pay = pays[userId];
 
                 const totalPay = Object.values(pay).reduce((sum, obj) => sum + obj.pay, 0);
 
-                await User.increment({ balance: totalPay }, { where: { id: userId } }, transaction)
+                await BalanceHistory.create({
+                    action_type: "freshmarket_salary",
+                    message: "Зарплата FreshMarket",
+                    userId: userId,
+                    value: totalPay
+                }, {
+                    transaction
+                })
+
+                await User.increment({ balance: totalPay }, { where: { id: userId }, transaction })
             }
             await transaction.commit()
         } catch (e) {
