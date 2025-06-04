@@ -42,7 +42,6 @@ module.exports = async function (fastify, opts) {
         const Shop = fastify.sequelize.model('Shop');
         const Order = fastify.sequelize.model('Order');
         const OrderHistory = fastify.sequelize.model('OrderHistory');
-        const ShopHistory = fastify.sequelize.model('ShopHistory');
         const Location = fastify.sequelize.model('Location');
         const BalanceHistory = fastify.sequelize.model('BalanceHistory');
 
@@ -53,6 +52,7 @@ module.exports = async function (fastify, opts) {
             product.count = parseInt(product?.count);
             return product;
         })
+
 
         if (type !== "branch") {
             return reply.status(400).send({message: "Сейчас доступна доставка только в филиалы!"});
@@ -163,19 +163,8 @@ module.exports = async function (fastify, opts) {
                     },
                     transaction
                 });
-                await ShopHistory.create({
-                    action_type: "ordered",
-                    userId: request.user.id, // Тот кто создал заказ
-                    shopId: productRow.shopId,
-                    data: {
-                        product: product.id,
-                        count: product.count,
-                        price: productRow.price,
-                    },
 
-                }, {
-                    transaction
-                })
+                product.price = productRow.price
                 await productRow.decrement({count: product.count}, {transaction});
             }
 
@@ -187,7 +176,7 @@ module.exports = async function (fastify, opts) {
                 price: totalPrice,
                 paid: true,
                 branchId: branch,
-                data: {products: products.map(({id, count}) => ({id, count}))},
+                data: {products: products.map(({id, count, price}) => ({id, count, price}))},
             }, {transaction});
 
             await OrderHistory.create({

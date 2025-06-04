@@ -2,7 +2,11 @@
 
 const { uploadToS3 } = require("../../../../utils/s3Util");
 const {Op} = require("sequelize");
+const fns = require('date-fns'); // { format, subDays, isSameDay, parseISO }
+
 module.exports = async function (fastify, opts) {
+
+
     fastify.addHook('onRequest', async (request, reply) => {
         try {
             const accessToken = request.cookies.access_token;
@@ -19,7 +23,7 @@ module.exports = async function (fastify, opts) {
     fastify.get('/sells', async function (request, reply) {
         const User = fastify.sequelize.model('User');
         const Shop = fastify.sequelize.model('Shop');
-        const ShopHistory = fastify.sequelize.model('ShopHistory');
+        const Product = fastify.sequelize.model('Product')
 
         const user = await User.findOne({
             where: {
@@ -36,6 +40,9 @@ module.exports = async function (fastify, opts) {
 
         const shop = await Shop.findOne({ where: { id: request.params.shop, ownerId: request.user.id }, attributes: ['id'] });
 
+        const products = await Product.findAll({ where: { shopId: shop.id }, attributes: ['id'] });
+        const productIds = products.map(item => item.id);
+
         if (!shop) {
             return reply.status(400).send({
                 message: "Магазин не существует или у вас недостаточно прав."
@@ -45,17 +52,49 @@ module.exports = async function (fastify, opts) {
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-        const orderedHistory = await ShopHistory.findAll({
+        const orders = await fastify.sequelize.models.Order.findAll({
             where: {
-                action_type: "ordered",
-                createdAt: {
-                    [Op.gte]: sevenDaysAgo
-                },
-                shopId: request.params.shop,
+                [Op.and]: [
+                    {
+                        [Op.or]: productIds.map((productId) =>
+                            fastify.sequelize.literal(
+                                `data->'products' @> '[{"id": ${productId}}]'`
+                            )
+                        )
+                    },
+                    {
+                        createdAt: {
+                            [Op.gte]: sevenDaysAgo
+                        }
+                    }
+                ]
             },
-            attributes: ['id', 'message', 'data', 'createdAt'],
-        })
+            order: [['createdAt', 'ASC']],
+            attributes: ['id', 'createdAt', 'data']
+        });
 
-        return reply.status(200).send(orderedHistory);
+        const today = new Date();
+
+
+        const last7Days = Array.from({ length: 7 }, (_, i) => {
+            const date = fns.subDays(today, i);
+            return {
+                date: fns.format(date, 'yyyy-MM-dd'),
+                total: 0
+            };
+        }).reverse();
+
+        for (const order of orders) {
+            const matchedDay = last7Days.find(day => fns.isSameDay(order.createdAt, new Date(day.date)));
+
+            for (const product of order.data.products) {
+                if (productIds.indexOf(product.id)) {
+                    matchedDay.total += product.price * product.count;
+                }
+
+            }
+        }
+
+        return reply.status(200).send(last7Days);
     });
 };
