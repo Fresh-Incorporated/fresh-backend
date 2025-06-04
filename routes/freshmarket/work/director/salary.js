@@ -187,47 +187,56 @@ module.exports = async function (fastify, opts) {
     fastify.post('/salary/submit', async function (request, reply) {
         const salaries = request.body;
 
+        const transaction = await fastify.sequelize.transaction();
 
         const User = fastify.sequelize.model('User');
         const Salary = fastify.sequelize.model('Salary');
 
-        const lastCompleted = await Salary.findOne({
-            limit: 1,
-            order: [['completedAt', 'DESC']],
-            attributes: ['completedAt']
-        }) || { completedAt: 0 };
+        try {
+            const lastCompleted = await Salary.findOne({
+                limit: 1,
+                order: [['completedAt', 'DESC']],
+                attributes: ['completedAt']
+            }) || { completedAt: 0 };
 
-        let pays = {}
+            let pays = {}
 
-        await Promise.all(salaries.map(async (salary) => {
-            const user = await User.findOne({
-                where: {
-                    id: salary.id
-                }
+            await Promise.all(salaries.map(async (salary) => {
+                const user = await User.findOne({
+                    where: {
+                        id: salary.id
+                    }
+                });
+
+                const filteredPays = Object.fromEntries(
+                    Object.entries(salary.pays)
+                        .filter(([role, obj]) => obj.pay !== 0)
+                );
+
+                pays[user.id] = filteredPays;
+            }));
+
+            await Salary.create({
+                createdAt: lastCompleted.completedAt,
+                completedAt: new Date(),
+                data: { pays },
+                transaction
             });
 
-            const filteredPays = Object.fromEntries(
-                Object.entries(salary.pays)
-                    .filter(([role, obj]) => obj.pay !== 0)
-            );
+            for (const userId of Object.keys(pays)) {
+                const pay = pays[userId];
 
-            pays[user.id] = filteredPays;
-        }));
+                const totalPay = Object.values(pay).reduce((sum, obj) => sum + obj.pay, 0);
 
-        await Salary.create({
-            createdAt: lastCompleted.completedAt,
-            completedAt: new Date(),
-            data: { pays },
-        });
-
-        for (const userId of Object.keys(pays)) {
-            const pay = pays[userId];
-
-            const totalPay = Object.values(pay).reduce((sum, obj) => sum + obj.pay, 0);
-
-            await User.increment({ balance: totalPay }, { where: { id: userId } })
+                await User.increment({ balance: totalPay }, { where: { id: userId } }, transaction)
+            }
+            await transaction.commit()
+        } catch (e) {
+            await transaction.rollback();
+            return reply.status(500).send(e);
         }
 
-        return reply.status(200).send();
+
+        return reply.status(200).send({ message: "Зарплата создана!" });
     });
 };
