@@ -63,15 +63,19 @@ module.exports = async function (fastify, opts) {
           return reply.status(500).send({ message: 'SPWorlds API не доступен. Попробуйте позже.' });
         }
 
+        try {
+          const { username, uuid } = await spwApi.findUser(discordUserData.id);
 
-        const { username, uuid } = await spwApi.findUser(discordUserData.id);
-
-        // Создаем нового пользователя
-        user = await User.create({
-          discordId: discordUserData.id,
-          nickname: username,
-          uuid: uuid,
-        });
+          // Создаем нового пользователя
+          user = await User.create({
+            discordId: discordUserData.id,
+            nickname: username,
+            uuid: uuid,
+          });
+        } catch (err) {
+          console.log(err)
+          return reply.status(500).send({ message: 'Не получилось найти аккаунт SPWorlds' });
+        }
       }
 
       // Генерация токенов
