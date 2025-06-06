@@ -61,7 +61,6 @@ module.exports = async function (fastify, opts) {
             }
         }
     }, async function (request, reply) {
-        return reply.status(400).send({ message: "Вывод средств не доступен в Альфа тесте для вашей же безпопасности!" })
         const User = fastify.sequelize.model('User');
         const BalanceHistory = fastify.sequelize.model('BalanceHistory');
         const spwApi = new SPWorlds({ id: process.env.SPW_ID, token: process.env.SPW_TOKEN })
