@@ -1,11 +1,13 @@
 'use strict'
 
+const {notifyUser} = require("../../../../../../utils/notifyUtil");
 module.exports = async function (fastify, opts) {
     fastify.addHook('onRequest', async (request, reply) => {
         const User = fastify.sequelize.model('User');
         const Product = fastify.sequelize.model('Product');
         const Location = fastify.sequelize.model('Location');
         const LocationCell = fastify.sequelize.model('LocationCell');
+        const Shop = fastify.sequelize.model('Shop');
 
         try {
             const accessToken = request.cookies.access_token;
@@ -46,6 +48,10 @@ module.exports = async function (fastify, opts) {
                                 as: "location"
                             }
                         ]
+                    },
+                    {
+                        model: Shop,
+                        as: "shop"
                     }
                 ]
             });
@@ -109,6 +115,8 @@ module.exports = async function (fastify, opts) {
             userId: request.user.id, // Тот кто завершил пополнение товара
             productId: request.product.id,
         })
+
+        notifyUser(fastify, request.product.shop.ownerId, "fm_refill_" + request.product.id, "Пополнение товара", "Товар " + request.product.name + " пополнен на " + add, "/freshmarket/cabinet/freshmarket_business")
 
         return reply.status(200).send({message: `Товар пополнен на ${add || 0}`});
     });
