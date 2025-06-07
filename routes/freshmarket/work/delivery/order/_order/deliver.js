@@ -1,6 +1,7 @@
 'use strict'
 
 const {Op, Sequelize} = require("sequelize");
+const {notifyUser} = require("../../../../../../utils/notifyUtil");
 module.exports = async function (fastify, opts) {
     fastify.addHook('onRequest', async (request, reply) => {
         const User = fastify.sequelize.model('User');
@@ -116,6 +117,8 @@ module.exports = async function (fastify, opts) {
             userId: request.user.id, // Тот кто взялся за доставку заказа
             orderId: request.order.id,
         })
+
+        notifyUser(fastify, request.order.customerId, "fm_order_" + request.order.id, "Заказ доставлен", "Не забудьте подтвердить получение!", "/freshmarket/orders")
 
         return reply.status(200).send({ message: "Задача на доставку заказа завершена!"});
     });

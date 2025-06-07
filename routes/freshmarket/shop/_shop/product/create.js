@@ -2,6 +2,7 @@
 
 const {uploadToS3} = require("../../../../../utils/s3Util");
 const {Sequelize, Op} = require("sequelize");
+const {notifyWorkers} = require("../../../../../utils/notifyUtil");
 module.exports = async function (fastify, opts) {
     fastify.addHook('onRequest', async (request, reply) => {
         try {
@@ -159,6 +160,8 @@ module.exports = async function (fastify, opts) {
                     icon: newProduct.icon,
                 },
             })
+
+            notifyWorkers(fastify, 3, "fm_secretary_product", "Новая проверка", "Проверьте товар", "/freshmarket/work/secretary/verify_products")
 
             return reply.status(200).send({
                 message: 'Товар успешно создан.',

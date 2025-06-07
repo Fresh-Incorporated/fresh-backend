@@ -2,6 +2,7 @@
 
 const { uploadToS3 } = require("../../../../../../utils/s3Util");
 const {Sequelize, Op} = require("sequelize");
+const {notifyWorkers} = require("../../../../../../utils/notifyUtil");
 module.exports = async function (fastify, opts) {
     fastify.addHook('onRequest', async (request, reply) => {
         const User = fastify.sequelize.model('User');
@@ -148,6 +149,8 @@ module.exports = async function (fastify, opts) {
             userId: request.user.id, // Тот кто завершил пополнение
             productId: product.id,
         })
+
+        notifyWorkers(fastify, 2, "fm_logic_refill", "Новое пополнение", "Пополните товар как можно скорей!", "/freshmarket/work/logic/refill")
 
         return reply.status(200).send({ message: "Вы завершили пополнение! Ожидайте пока работники пополнят склад." })
     });
