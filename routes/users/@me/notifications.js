@@ -90,8 +90,9 @@ module.exports = async function (fastify, opts) {
                         body: "Привет! Это тест.",
                         icon: "/logo.png",
                         badge: "/logo.png",
+                        silent: false,
                         data: {
-                            url: "https://fresh.zaralx.ru/cabinet"
+                            url: process.env.FRONTEND_URL + "/cabinet"
                         }
                     }
                 }));

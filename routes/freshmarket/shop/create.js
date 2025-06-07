@@ -1,6 +1,7 @@
 'use strict'
 
 const { uploadToS3 } = require("../../../utils/s3Util");
+const {notifyWorkers} = require("../../../utils/notifyUtil");
 module.exports = async function (fastify, opts) {
     fastify.addHook('onRequest', async (request, reply) => {
         try {
@@ -108,6 +109,8 @@ module.exports = async function (fastify, opts) {
                 userId: request.user.id,
                 value: -price,
             })
+
+            notifyWorkers(fastify, 3, "fm_secretary_shop", "Новая проверка", "Проверьте магазин", "/freshmarket/work/secretary/verify_shops")
 
             return reply.status(200).send({
                 message: 'Магазин успешно создан.',
