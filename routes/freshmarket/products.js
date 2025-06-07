@@ -47,7 +47,11 @@ module.exports = async function (fastify, opts) {
 
         if (query.search !== undefined) {
             defaultQuery.where[Op.and].push({
-                [Op.or]: [{ name: { [Op.like]: `%${query.search}%` } }, { description: { [Op.like]: `%${query.search}%` } },],
+                [Op.or]: [
+                    { name: { [Op.iLike]: `%${query.search}%` } },
+                    { description: { [Op.iLike]: `%${query.search}%` } },
+                    { '$shop.name$': { [Op.iLike]: `%${query.search}%` } },
+                ],
             });
         }
 
