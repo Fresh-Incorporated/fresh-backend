@@ -10,7 +10,7 @@ module.exports = async function (fastify, options) {
             autoIncrement: true
         },
         value: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.DOUBLE,
             allowNull: false,
         },
         message: {
