@@ -56,7 +56,7 @@ module.exports = async function (fastify, opts) {
             where: {
                 ownerId: request.user.id
             },
-            attributes: ['id', 'name', 'description', 'icon', 'products_limit', 'verify_status', 'balance', 'createdAt'],
+            attributes: ['id', 'name', 'description', 'icon', 'products_limit', 'verify_status', 'balance', 'createdAt', 'tag'],
             include: [{
                 model: Product,
                 as: 'products',
