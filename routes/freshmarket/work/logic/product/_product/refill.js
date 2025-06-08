@@ -116,7 +116,7 @@ module.exports = async function (fastify, opts) {
             productId: request.product.id,
         })
 
-        notifyUser(fastify, request.product.shop.ownerId, "fm_refill_" + request.product.id, "Пополнение товара", "Товар " + request.product.name + " пополнен на " + add, "/freshmarket/cabinet/freshmarket_business")
+        notifyUser(fastify, request.product.shop.ownerId, "fm_refill_" + request.product.id, "Пополнение товара", "Товар " + request.product.name + " пополнен на " + add, "/cabinet/freshmarket_business")
 
         return reply.status(200).send({message: `Товар пополнен на ${add || 0}`});
     });

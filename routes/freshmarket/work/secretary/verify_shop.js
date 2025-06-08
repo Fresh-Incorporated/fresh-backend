@@ -1,5 +1,6 @@
 'use strict'
 
+const {notifyUser} = require("../../../../utils/notifyUtil");
 module.exports = async function (fastify, opts) {
     fastify.addHook('onRequest', async (request, reply) => {
         const User = fastify.sequelize.model('User');
@@ -41,7 +42,7 @@ module.exports = async function (fastify, opts) {
             where: {
                 id: request.params.id,
                 verify_status: 0
-            }
+            },
         });
 
         if (!shop) {
@@ -51,6 +52,8 @@ module.exports = async function (fastify, opts) {
         }
 
         await shop.update({verify_status: 1});
+
+        notifyUser(fastify, shop.ownerId, "fm_accepted_shop_" + shop.id, "Магазин подтверждён", "Магазин " + shop.name + " подтверждён", "/cabinet/freshmarket_business")
 
         return reply.status(200).send({
             message: "Магазин подтверждён"
@@ -74,6 +77,8 @@ module.exports = async function (fastify, opts) {
         }
 
         await shop.update({verify_status: -1});
+
+        notifyUser(fastify, shop.ownerId, "fm_declined_shop_" + shop.id, "Магазин отклонён", "Магазин " + shop.name + " отклонён", "/cabinet/freshmarket_business")
 
         return reply.status(200).send({
             message: "Магазин отклонён"
