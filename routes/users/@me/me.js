@@ -112,7 +112,7 @@ module.exports = async function (fastify, opts) {
             action_type: "withdraw",
             message: "Вывод средств на карту SPWorlds: " + receiver,
             userId: user.id,
-            value: amount
+            value: -amount
         })
 
         return reply.status(200).send({ message: "Успешный вывод!"});
