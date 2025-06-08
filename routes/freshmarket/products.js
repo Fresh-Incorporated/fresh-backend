@@ -24,7 +24,7 @@ module.exports = async function (fastify, opts) {
             include: {
                 model: Shop,
                 as: 'shop',
-                attributes: ["id", "name", "icon"],
+                attributes: ["id", "name", "icon", "tag"],
                 where: {
                     verify_status: 1,
                     enabled: true
