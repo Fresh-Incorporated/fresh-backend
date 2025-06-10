@@ -1,5 +1,7 @@
 'use strict'
 
+const {Op} = require("sequelize");
+const {startOfDay, subDays, format} = require("date-fns");
 module.exports = async function (fastify, opts) {
     fastify.addHook('onRequest', async (request, reply) => {
         try {
@@ -166,7 +168,7 @@ module.exports = async function (fastify, opts) {
     })
 
     fastify.get('/history/balance', async function (request, reply) {
-        const { offset } = request.query;
+        const { offset, before } = request.query;
         const User = fastify.sequelize.model('User');
         const BalanceHistory = fastify.sequelize.model('BalanceHistory');
 
@@ -185,7 +187,10 @@ module.exports = async function (fastify, opts) {
 
         const history = await BalanceHistory.findAll({
             where: {
-                userId: request.user.id
+                userId: request.user.id,
+                createdAt: {
+                    [Op.lte]: new Date(before ?? Date.now()),
+                }
             },
             attributes: ['id', 'action_type', 'message', 'value', 'createdAt'],
             order: [['createdAt', 'DESC']],
@@ -195,4 +200,40 @@ module.exports = async function (fastify, opts) {
 
         return reply.status(200).send(history);
     })
+
+    fastify.get('/history/balance/month', async function (request, reply) {
+        const User = fastify.sequelize.model('User');
+        const BalanceHistory = fastify.sequelize.model('BalanceHistory');
+
+        const user = await User.findOne({
+            where: { id: request.user.id },
+            attributes: ['id'],
+        });
+
+        if (!user) {
+            return reply.status(400).send({ message: "Пользователь не найден." });
+        }
+
+        const thirtyDaysAgo = startOfDay(subDays(new Date(), 30));
+
+        const history = await BalanceHistory.findAll({
+            where: {
+                userId: request.user.id,
+                createdAt: {
+                    [Op.gte]: thirtyDaysAgo
+                }
+            },
+            attributes: ['value', 'createdAt'],
+            order: [['createdAt', 'ASC']],
+        });
+
+        const result = {};
+
+        for (const record of history) {
+            const date = format(record.createdAt, 'yyyy-MM-dd');
+            result[date] = (result[date] || 0) + record.value;
+        }
+
+        return reply.status(200).send(result);
+    });
 }
