@@ -9,31 +9,41 @@ module.exports = async function (fastify, opts) {
 
     fastify.addHook('onRequest', async (request, reply) => {
         try {
+            const { User } = fastify.sequelize.models;
             const accessToken = request.cookies.access_token;
             if (!accessToken) {
                 return reply.status(401).send({ error: 'Missing access token' });
             }
 
             request.user = fastify.jwt.verify(accessToken);
+
+            request.user = await User.findOne({
+                where: {
+                    id: request.user.id
+                },
+                attributes: { exclude: ['updatedAt'] },
+            });
+
+            if (!request.user) {
+                return reply.status(400).send({
+                    message: "Пользователь не найден."
+                });
+            }
         } catch (err) {
             reply.status(401).send({ error: 'Unauthorized' });
         }
     });
 
-    fastify.get('/sells', async function (request, reply) {
-        const { User, Shop, Product, Order } = fastify.sequelize.models;
-
-        const user = await User.findByPk(request.user.id, {
-            attributes: { exclude: ['updatedAt'] }
-        });
-
-        if (!user) {
-            return reply.status(400).send({ message: "Пользователь не найден." });
-        }
+    fastify.get('/', async function (request, reply) {
+        const { Shop, Product, Order, LocationCell } = fastify.sequelize.models;
 
         const shop = await Shop.findOne({
-            where: { id: request.params.shop, ownerId: user.id },
-            attributes: ['id']
+            where: { id: request.params.shop, ownerId: request.user.id },
+            include: [{
+                model: Product,
+                as: 'products',
+                include: [{ model: LocationCell, as: 'refillCell' }]
+            }]
         });
 
         if (!shop) {
@@ -42,52 +52,63 @@ module.exports = async function (fastify, opts) {
             });
         }
 
-        const products = await Product.findAll({
-            where: { shopId: shop.id },
-            attributes: ['id']
+        return reply.send({ shop });
+    });
+
+    fastify.get('/sells', async function (request, reply) {
+        const { User, Shop, Product, Order } = fastify.sequelize.models;
+
+        const shop = await Shop.findOne({
+            where: { id: request.params.shop, ownerId: request.user.id },
+            attributes: ['id'],
+            include: [{ model: Product, as: 'products', attributes: ['id'] }]
         });
 
-        const productIds = products.map(p => p.id);
-
-        if (productIds.length === 0) {
-            return reply.send(generateEmptyDays());
+        if (!shop) {
+            return reply.status(400).send({
+                message: "Магазин не существует или у вас недостаточно прав."
+            });
         }
 
-        const today = new Date();
-        const startDate = fns.startOfDay(fns.subDays(today, 6)); // 6 дней назад + сегодня = 7
+        const productIds = shop.products.map(p => p.id);
 
         const orders = await Order.findAll({
             where: {
-                createdAt: { [Op.gte]: startDate },
-                [Op.or]: productIds.map(id =>
-                    literal(`data->'products' @> '[{"id": ${id}}]'`)
-                )
+                paid: true,
+                data: {
+                    [Op.ne]: null
+                }
             },
-            attributes: ['createdAt', 'data'],
-            order: [['createdAt', 'ASC']]
+            attributes: ['id', 'data', 'paid', 'createdAt'],
         });
 
-        const dailySales = generateEmptyDays();
+        const salesHistory = {};
 
         for (const order of orders) {
-            const day = dailySales.find(d => fns.isSameDay(new Date(order.createdAt), new Date(d.date)));
-            if (!day) continue;
+            const orderProducts = order.data.products || [];
 
-            for (const product of order.data.products) {
-                if (productIds.includes(product.id) && product.price != null && product.count != null) {
-                    day.total += product.price * product.count;
+            for (const p of orderProducts) {
+                if (!productIds.includes(p.id)) continue;
+
+                if (!salesHistory[p.id]) {
+                    const product = shop.products.find(prod => prod.id === p.id);
+                    salesHistory[p.id] = {
+                        productId: p.id,
+                        sales: []
+                    };
                 }
+
+                salesHistory[p.id].sales.push({
+                    orderId: parseInt(order.id),
+                    count: p.count,
+                    price: p.price ?? 0,
+                    date: order.createdAt
+                });
             }
         }
 
-        return reply.send(dailySales);
-    });
-
-    function generateEmptyDays() {
-        const today = new Date();
-        return Array.from({ length: 7 }, (_, i) => {
-            const date = fns.format(fns.subDays(today, 6 - i), 'yyyy-MM-dd');
-            return { date, total: 0 };
+        reply.send({
+            productLastSells: Object.values(salesHistory)
         });
-    }
+    });
 };

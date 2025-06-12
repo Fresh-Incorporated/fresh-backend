@@ -32,13 +32,13 @@ module.exports = async function (fastify, opts) {
             attributes: ['id'],
         });
 
-        if (request.query.name < 3 || request.query.name > 24) {
+        if (request.query.name.length < 3 || request.query.name.length > 24) {
             return reply.status(400).send({
                 message: "Длинна названия должна быть в пределах 3-24 символов."
             });
         }
 
-        if (request.query.description > 240) {
+        if (request.query.description?.length > 240) {
             return reply.status(400).send({
                 message: "Длинна описания должна быть не более 240 символов."
             });

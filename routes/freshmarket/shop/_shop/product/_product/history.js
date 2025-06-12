@@ -70,7 +70,8 @@ module.exports = async function (fastify, opts) {
                     as: "user",
                     attributes: ["id", "nickname", "uuid", "discordId"],
                 }
-            ]
+            ],
+            limit: 100,
         });
 
         return reply.status(200).send(history);
