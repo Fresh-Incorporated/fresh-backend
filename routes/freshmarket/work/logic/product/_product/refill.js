@@ -51,7 +51,11 @@ module.exports = async function (fastify, opts) {
                     },
                     {
                         model: Shop,
-                        as: "shop"
+                        as: "shop",
+                        include: {
+                            model: User,
+                            as: "owner"
+                        }
                     }
                 ]
             });

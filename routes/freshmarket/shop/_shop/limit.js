@@ -24,63 +24,70 @@ module.exports = async function (fastify, opts) {
 
         const count = parseInt(request.body.count);
 
-        if (count <= 0 || count > 100) {
-            return reply.status(400).send({ message: 'Bad Request' });
+        if (!count || count <= 0 || count > 100) {
+            return reply.status(400).send({ message: 'Неверное количество.' });
         }
 
-        const user = await User.findOne({
-            where: {
-                id: request.user.id
-            },
-            attributes: ['id'],
-        });
+        try {
+            await fastify.sequelize.transaction(async (t) => {
+                const user = await User.findOne({
+                    where: { id: request.user.id },
+                    attributes: ['id', 'balance'],
+                    lock: t.LOCK.UPDATE,
+                    transaction: t
+                });
 
-        if (!user) {
-            return reply.status(400).send({
-                message: "Пользователь не найден."
+                if (!user) {
+                    throw new Error("Пользователь не найден.");
+                }
+
+                const shop = await Shop.findOne({
+                    where: { id: request.params.shop, ownerId: user.id },
+                    transaction: t
+                });
+
+                if (!shop) {
+                    throw new Error("Магазин не существует или у вас недостаточно прав.");
+                }
+
+                const current_limit = shop.products_limit;
+
+                if (current_limit + count > 25) {
+                    throw new Error("На данный момент максимальный лимит — 25.");
+                }
+
+                const price = Math.ceil(20 * count * (1 - 0.15 * Math.log10(count + 1)));
+
+                if (user.balance < price) {
+                    throw new Error("Недостаточно средств, пополните баланс.");
+                }
+
+                await shop.increment({ products_limit: count }, { transaction: t });
+
+                await User.update(
+                    { balance: user.balance - price },
+                    { where: { id: user.id }, transaction: t }
+                );
+
+                await ShopHistory.create({
+                    action_type: "limit_increase",
+                    userId: user.id,
+                    shopId: shop.id,
+                    data: { count }
+                }, { transaction: t });
+
+                await BalanceHistory.create({
+                    action_type: "freshmarket_pay",
+                    message: `Увеличение лимита магазина ${shop.name} [${shop.id}]`,
+                    userId: user.id,
+                    value: -price
+                }, { transaction: t });
             });
+
+            return reply.status(200).send({ message: "Лимит магазина увеличен!" });
+
+        } catch (err) {
+            return reply.status(400).send({ message: err.message || "Ошибка при увеличении лимита." });
         }
-
-        const shop = await Shop.findOne({where: { id: request.params.shop, ownerId: request.user.id }});
-
-        if (!shop) {
-            return reply.status(400).send({
-                message: "Магазин не существует или у вас недостаточно прав."
-            });
-        }
-
-        const current_limit = shop.products_limit
-
-        if (current_limit + count > 25) {
-            return reply.status(400).send({
-                message: "На данный момент максимальный лимит - 25"
-            });
-        }
-
-        const price = Math.ceil(20 * count * (1 - 0.15 * Math.log10(count + 1)));
-
-        if (user.balance < price) {
-            return reply.status(400).send({
-                message: "Недостаточно средств, пополните баланс."
-            })
-        }
-
-        await shop.increment({products_limit: count})
-        await user.decrement({balance: price})
-        await ShopHistory.create({
-            action_type: "limit_increase",
-            userId: user.id, // Тот кто увеличил лимит магазина
-            shopId: shop.id,
-            data: {
-                count
-            },
-        })
-        await BalanceHistory.create({
-            action_type: "freshmarket_pay",
-            message: "Увеличение лимита магазина " + shop.name + " [" + shop.id + "]",
-            userId: user.id,
-            value: -price
-        })
-        return reply.status(200).send({message: "Лимит магазина увеличен!", limit: count + current_limit});
     });
 };
