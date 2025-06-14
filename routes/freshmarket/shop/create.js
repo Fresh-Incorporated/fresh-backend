@@ -35,13 +35,13 @@ module.exports = async function (fastify, opts) {
             });
         }
 
-        if (request.query.name < 3 || request.query.name > 16) {
+        if (request.query.name.length < 3 || request.query.name.length > 16) {
             return reply.status(400).send({
                 message: "Длинна названия должна быть в пределах 3-16 символов."
             });
         }
 
-        if (request.query.description > 240) {
+        if (request.query.description.length > 240) {
             return reply.status(400).send({
                 message: "Длинна описания должна быть не более 240 символов."
             });

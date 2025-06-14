@@ -63,58 +63,64 @@ module.exports = async function (fastify, opts) {
     }, async function (request, reply) {
         const User = fastify.sequelize.model('User');
         const BalanceHistory = fastify.sequelize.model('BalanceHistory');
-        const spwApi = new SPWorlds({ id: process.env.SPW_ID, token: process.env.SPW_TOKEN })
-        const pong = await spwApi.ping()
+        const spwApi = new SPWorlds({ id: process.env.SPW_ID, token: process.env.SPW_TOKEN });
 
+        const pong = await spwApi.ping();
         if (!pong) {
             return reply.status(500).send({ message: 'SPWorlds API не доступен. Попробуйте позже.' });
         }
 
-        const {receiver} = request.body;
+        const { receiver } = request.body;
         const amount = parseInt(request.body.amount);
 
-        if (amount == null || amount < 1 || amount > 1728) {
-            return reply.status(500).send({ message: 'Сумма должна быть больше 0 и меньше 1729.' });
+        if (!amount || amount < 1 || amount > 1728) {
+            return reply.status(400).send({ message: 'Сумма должна быть больше 0 и меньше 1729.' });
         }
 
-        const user = await User.findOne({
-            where: {
-                id: request.user.id
-            },
-            attributes: ["id", "balance"]
-        })
+        try {
+            await fastify.sequelize.transaction(async (t) => {
+                const user = await User.findOne({
+                    where: { id: request.user.id },
+                    attributes: ['id', 'balance'],
+                    lock: t.LOCK.UPDATE,
+                    transaction: t
+                });
 
-        if (!user) {
-            return reply.status(400).send({
-                message: "Пользователь не найден."
+                if (!user) {
+                    throw new Error("Пользователь не найден.");
+                }
+
+                if (parseInt(user.balance) < amount) {
+                    throw new Error("Недостаточно средств.");
+                }
+
+                await User.update(
+                    { balance: user.balance - amount },
+                    { where: { id: user.id }, transaction: t }
+                );
+
+                await BalanceHistory.create({
+                    action_type: "withdraw",
+                    message: "Вывод средств на карту SPWorlds: " + receiver,
+                    userId: user.id,
+                    value: -amount
+                }, { transaction: t });
             });
-        }
 
-        if (parseInt(user.balance) < amount) {
-            return reply.status(400).send({
-                message: "Недостаточно средств."
+            await spwApi.createTransaction({
+                receiver: receiver,
+                amount: amount,
+                comment: 'Вывод средств Fresh Inc'
             });
+
+            return reply.status(200).send({ message: "Успешный вывод!" });
+
+        } catch (err) {
+            const message = err.message === "Недостаточно средств." || err.message === "Пользователь не найден."
+                ? err.message
+                : "Ошибка при выводе средств. Попробуйте позже.";
+
+            return reply.status(400).send({ message });
         }
-
-        await spwApi.createTransaction({
-            receiver: receiver,
-            amount: amount,
-            comment: 'Вывод средств Fresh Inc'
-        })
-
-        await User.decrement({balance: amount}, {
-            where: {
-                id: request.user.id
-            }
-        })
-
-        await BalanceHistory.create({
-            action_type: "withdraw",
-            message: "Вывод средств на карту SPWorlds: " + receiver,
-            userId: user.id,
-            value: amount
-        })
-
-        return reply.status(200).send({ message: "Успешный вывод!"});
-    })
+    });
 }

@@ -28,6 +28,8 @@ module.exports = async function (fastify, opts) {
                 });
             }
 
+            request.user = user;
+
             const shop = await Shop.findOne({ where: { id: request.params.shop, ownerId: request.user.id }, attributes: ['id'] });
 
             if (!shop) {
@@ -37,6 +39,7 @@ module.exports = async function (fastify, opts) {
             }
             request.shop = shop
         } catch (err) {
+            console.error(err);
             reply.status(401).send({ error: 'Unauthorized' });
         }
     });

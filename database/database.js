@@ -58,7 +58,7 @@ async function setupDatabase(fastify) {
     UserModel.hasMany(UserWebpush, {foreignKey: 'userId', as: 'webpushs'});
     UserWebpush.belongsTo(UserModel, {foreignKey: 'userId', as: 'webpush'});
 
-    fastify.sequelize.sync({force: false, alter: true})
+    fastify.sequelize.sync({force: false, alter: false})
         .then(async () => {
             console.log("Database synchronized successfully")
         })

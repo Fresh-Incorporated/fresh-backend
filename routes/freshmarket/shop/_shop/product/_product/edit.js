@@ -133,13 +133,14 @@ module.exports = async function (fastify, opts) {
                 }
             });
 
-            delete changes.verify_status;
+            const historyChanges = structuredClone(changes);
+            delete historyChanges.verify_status;
 
             await ProductHistory.create({
                 action_type: "edited",
                 userId: user.id,
                 productId: request.product.id,
-                data: changes,
+                data: historyChanges,
             })
 
             if (changes.verify_status === 0) {
