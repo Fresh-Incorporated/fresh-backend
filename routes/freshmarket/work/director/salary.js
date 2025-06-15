@@ -45,26 +45,25 @@ module.exports = async function (fastify, opts) {
 
         const percents = { delivery: 20, logistic: 40, secretary: 20, director: 20 }
 
-
         const lastCompleted = await Salary.findOne({
             limit: 1,
             order: [['completedAt', 'DESC']],
             attributes: ['completedAt']
         }) || { completedAt: 0 };
 
-
+        // console.log(lastCompleted)
 
         const ordersHistory = await OrderHistory.findAll({
-            where: {
-                createdAt: {
-                    [Op.gt]: lastCompleted.completedAt
-                }
-            },
             attributes: ["id", "action_type", "userId"],
             include: [{
                 model: Order,
                 as: "order",
-                attributes: ["id", "type", "price", "status", "customerId"],
+                attributes: ["id", "type", "price", "status", "customerId", "createdAt"],
+                where: {
+                    createdAt: {
+                        [Op.gt]: lastCompleted.completedAt
+                    },
+                },
                 required: true
             }, {
                 model: User,
@@ -72,7 +71,6 @@ module.exports = async function (fastify, opts) {
                 attributes: ["id", "nickname", "uuid", "discordId"]
             }]
         });
-        console.log(ordersHistory)
 
         const productRefills = await ProductHistory.findAll({
             where: {
@@ -91,16 +89,17 @@ module.exports = async function (fastify, opts) {
             ]
         })
 
-        let recordedOrders = [];
+        let recordedOrders = new Set();
         let totalSalary = 0;
 
         for (const orderHistory of ordersHistory) {
-            if (!recordedOrders.includes(orderHistory.order.id)) {
+            if (!recordedOrders.has(orderHistory.order.id)) {
+                // console.log(orderHistory.order.id, lastCompleted.completedAt, orderHistory.order.createdAt, new Date(orderHistory.order.createdAt) > new Date(lastCompleted.completedAt))
                 totalSalary = totalSalary + (orderHistory.order.price * 0.1)
-                recordedOrders.push(orderHistory.order.id);
+                recordedOrders.add(orderHistory.order.id);
             }
-
         }
+        // console.log(totalSalary)
         const salaries = []
         for (const history of ordersHistory) {
             let salary;
