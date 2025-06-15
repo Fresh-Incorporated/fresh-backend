@@ -120,7 +120,7 @@ module.exports = async function (fastify, opts) {
             orderId: request.order.id,
         })
 
-        notifyWorkers(fastify, 1, "fm_delivery", "Новая доставка", "Доставьте его как можно скорей!", "/freshmarket/work/delivery")
+        notifyWorkers(fastify, 1, "fm_delivery", "Новая доставка", "Доставьте его как можно скорей!", "/cabinet/freshmarket/work/delivery")
 
         return reply.status(200).send({message: "Задача на сбор заказа завершена!"});
     });

@@ -110,7 +110,7 @@ module.exports = async function (fastify, opts) {
                 value: -price,
             })
 
-            notifyWorkers(fastify, 3, "fm_secretary_shop", "Новая проверка", "Проверьте магазин", "/freshmarket/work/secretary/verify_shops")
+            notifyWorkers(fastify, 3, "fm_secretary_shop", "Новая проверка", "Проверьте магазин", "/cabinet/freshmarket/work/secretary/verify/shops")
 
             return reply.status(200).send({
                 message: 'Магазин успешно создан.',

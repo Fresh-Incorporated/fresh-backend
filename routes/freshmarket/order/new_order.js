@@ -201,7 +201,7 @@ module.exports = async function (fastify, opts) {
 
             await transaction.commit();
 
-            notifyWorkers(fastify, 2, "fm_logic_collect", "Новый заказ", "Соберите его как можно скорей!", "/freshmarket/work/logic/collect")
+            notifyWorkers(fastify, 2, "fm_logic_collect", "Новый заказ", "Соберите его как можно скорей!", "/cabinet/freshmarket/work/logic/collect")
 
             return reply.status(200).send({message: "Заказ оформлен."});
 
