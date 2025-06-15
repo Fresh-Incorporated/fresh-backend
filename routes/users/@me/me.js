@@ -105,18 +105,22 @@ module.exports = async function (fastify, opts) {
                     userId: user.id,
                     value: -amount
                 }, { transaction: t });
-            });
 
-            await spwApi.createTransaction({
-                receiver: receiver,
-                amount: amount,
-                comment: 'Вывод средств Fresh Inc'
+                const response = await spwApi.createTransaction({
+                    receiver: receiver,
+                    amount: amount,
+                    comment: 'Вывод средств Fresh Inc'
+                });
+
+                if (!response || response.error) {
+                    throw new Error("Ошибка при создании транзакции в SPWorlds.");
+                }
             });
 
             return reply.status(200).send({ message: "Успешный вывод!" });
 
         } catch (err) {
-            const message = err.message === "Недостаточно средств." || err.message === "Пользователь не найден."
+            const message = ["Недостаточно средств.", "Пользователь не найден."].includes(err.message)
                 ? err.message
                 : "Ошибка при выводе средств. Попробуйте позже.";
 
