@@ -74,6 +74,12 @@ module.exports = async function (fastify, opts) {
             request.query.tag = request.query.tag.toLowerCase();
         }
 
+        if (await Shop.findOne({where: {tag: request.query.tag}})) {
+            return reply.status(400).send({
+                message: "Тег магазина уже занят!"
+            });
+        }
+
         if (request.query.description && (request.query.description > 240)) {
             return reply.status(400).send({
                 message: "Длина описания должна быть не более 240 символов."
