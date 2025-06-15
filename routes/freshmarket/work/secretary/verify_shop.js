@@ -53,7 +53,7 @@ module.exports = async function (fastify, opts) {
 
         await shop.update({verify_status: 1});
 
-        notifyUser(fastify, shop.ownerId, "fm_accepted_shop_" + shop.id, "Магазин подтверждён", "Магазин " + shop.name + " подтверждён", "/cabinet/freshmarket_business")
+        notifyUser(fastify, shop.ownerId, "fm_accepted_shop_" + shop.id, "Магазин подтверждён", "Магазин " + shop.name + " подтверждён", "/cabinet/freshmarket/shop/" + shop.id)
 
         return reply.status(200).send({
             message: "Магазин подтверждён"
@@ -78,7 +78,7 @@ module.exports = async function (fastify, opts) {
 
         await shop.update({verify_status: -1});
 
-        notifyUser(fastify, shop.ownerId, "fm_declined_shop_" + shop.id, "Магазин отклонён", "Магазин " + shop.name + " отклонён", "/cabinet/freshmarket_business")
+        notifyUser(fastify, shop.ownerId, "fm_declined_shop_" + shop.id, "Магазин отклонён", "Магазин " + shop.name + " отклонён", "/cabinet/freshmarket/shop/" + shop.id)
 
         return reply.status(200).send({
             message: "Магазин отклонён"

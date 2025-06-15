@@ -153,7 +153,7 @@ module.exports = async function (fastify, opts) {
             productId: product.id,
         })
 
-        notifyWorkers(fastify, 2, "fm_logic_refill", "Новое пополнение", "Пополните товар как можно скорей!", "/freshmarket/work/logic/refill")
+        notifyWorkers(fastify, 2, "fm_logic_refill", "Новое пополнение", "Пополните товар как можно скорей!", "/cabinet/freshmarket/work/logic/refill")
 
         return reply.status(200).send({ message: "Вы завершили пополнение! Ожидайте пока работники пополнят склад." })
     });
