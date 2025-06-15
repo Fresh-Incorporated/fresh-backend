@@ -84,6 +84,26 @@ module.exports = async function (fastify, opts) {
             ]
         });
 
-        return reply.status(200).send({orders});
+        const productIds = new Set()
+        for (const order of orders) {
+            for (const product of order.data?.products) {
+                productIds.add(product.id)
+            }
+        }
+
+        const products = await Product.findAll({
+            where: { id: Array.from(productIds) }, // Преобразуем Set в массив
+            include: [{
+                model: Shop,
+                as: "shop",
+                attributes: ['id', 'name', 'description', 'icon'],
+            },{
+                model: LocationCell,
+                as: "cell",
+            }],
+            paranoid: false
+        });
+
+        return reply.status(200).send({orders, products});
     });
 };

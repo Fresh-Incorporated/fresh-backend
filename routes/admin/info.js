@@ -1,83 +1,107 @@
 'use strict'
 
+const { Op, fn, col, literal } = require('sequelize');
+const { format, subDays } = require('date-fns');
+
 module.exports = async function (fastify, opts) {
+    // Проверка авторизации и прав
     fastify.addHook('onRequest', async (request, reply) => {
         const User = fastify.sequelize.model('User');
+        const token = request.cookies.access_token;
+
+        if (!token) {
+            return reply.status(401).send({ error: 'Missing access token' });
+        }
+
         try {
-            const accessToken = request.cookies.access_token
-            if (!accessToken) {
-                return reply.status(401).send({error: 'Missing access token'})
-            }
+            const decoded = fastify.jwt.verify(token);
 
-            request.user = fastify.jwt.verify(accessToken)
-
-            request.user = await User.findOne({
-                where: {
-                    id: request.user.id
-                },
-                attributes: { exclude: ['updatedAt'] },
+            const user = await User.findOne({
+                where: { id: decoded.id },
+                attributes: ['id', 'admin']
             });
 
-            if (!request.user) {
-                return reply.status(400).send({
-                    message: "Пользователь не найден."
-                });
-            }
+            if (!user) return reply.status(400).send({ message: "Пользователь не найден." });
+            if (!user.admin) return reply.status(403).send({ message: "Недостаточно прав." });
 
-            if (!request.user.admin) {
-                return reply.status(400).send({
-                    message: "Недостаточно прав."
-                });
-            }
-        } catch (err) {
-            reply.status(401).send({error: 'Unauthorized'})
+            request.user = user;
+        } catch {
+            return reply.status(401).send({ error: 'Unauthorized' });
         }
     });
 
+    // Основной маршрут /stats
     fastify.get('/stats', async function (request, reply) {
         const User = fastify.sequelize.model('User');
         const Shop = fastify.sequelize.model('Shop');
 
-        const user = await User.findOne({
-            where: {
-                id: request.user.id,
-                admin: true
-            },
-            attributes: { exclude: ['updatedAt'] },
-        });
-
+        // Кол-во пользователей
         const totalUsers = await User.count();
 
-        if (!user) {
-            return reply.status(400).send({
-                message: "Пользователь не найден или недостаточно прав."
+        // Получаем всех пользователей и магазины одним запросом
+        const [users, shops] = await Promise.all([
+            User.findAll({ attributes: ['id', 'balance'] }),
+            Shop.findAll({ attributes: ['id', 'balance', 'ownerId'] })
+        ]);
+
+        // Общие балансы
+        const totalBalanceUsers = users.reduce((sum, u) => sum + u.balance, 0);
+        const totalBalanceShops = shops.reduce((sum, s) => sum + s.balance, 0);
+
+        // Расходы на магазины (по прогрессии)
+        const shopCountsByUser = shops.reduce((acc, shop) => {
+            acc[shop.ownerId] = (acc[shop.ownerId] || 0) + 1;
+            return acc;
+        }, {});
+
+        let totalSpentOnShops = 0;
+        for (const userId in shopCountsByUser) {
+            const count = shopCountsByUser[userId];
+            const cost = count * 16 + (count * (count - 1)) * 64 / 2;
+            totalSpentOnShops += cost;
+        }
+
+        // Регистрации за последние 90 дней
+        const today = new Date();
+        const startDate = subDays(today, 89); // включая сегодня
+
+        const registrationsRaw = await User.findAll({
+            attributes: [
+                [literal('DATE("createdAt")'), 'date'],
+                [fn('COUNT', '*'), 'count']
+            ],
+            where: {
+                createdAt: {
+                    [Op.gte]: startDate
+                }
+            },
+            group: [literal('DATE("createdAt")')],
+            order: [[literal('DATE("createdAt")'), 'ASC']],
+            raw: true
+        });
+
+        // Преобразование выборки в мапу для быстрого доступа
+        const registrationsMap = {};
+        for (const r of registrationsRaw) {
+            registrationsMap[r.date] = Number(r.count);
+        }
+
+        // Сбор финального массива
+        const registrations = [];
+        for (let i = 0; i < 90; i++) {
+            const date = format(subDays(today, 89 - i), 'yyyy-MM-dd');
+            registrations.push({
+                date,
+                count: registrationsMap[date] || 0
             });
         }
 
-        const users = await User.findAll({
-
+        return reply.status(200).send({
+            totalSpentOnShops,
+            totalBalanceUsers,
+            totalBalanceShops,
+            totalUsers,
+            registrations
         });
-
-        const shops = await Shop.findAll({
-
-        });
-
-        let totalSpentOnShops = 0;
-        const totalBalanceUsers = users.reduce((sum, user) => sum + user.balance, 0);
-        const totalBalanceShops = shops.reduce((sum, shop) => sum + shop.balance, 0);
-
-        for (const user of users) {
-            const shopCount = await Shop.count({ where: { ownerId: user.id } });
-
-            if (shopCount > 0) {
-                let cost = 0;
-                for (let i = 0; i < shopCount; i++) {
-                    cost += 16 + 64 * i;
-                }
-                totalSpentOnShops += cost;
-            }
-        }
-
-        return reply.status(200).send({totalSpentOnShops, totalBalanceUsers, totalBalanceShops, totalUsers});
     });
 };
