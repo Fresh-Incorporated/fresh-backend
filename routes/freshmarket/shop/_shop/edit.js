@@ -51,16 +51,16 @@ module.exports = async function (fastify, opts) {
             });
         }
 
-        if (request.query.name && (request.query.name < 3 || request.query.name > 16)) {
+        if (request.query.name && (request.query.name.length < 3 || request.query.name.length > 16)) {
             return reply.status(400).send({
                 message: "Длина названия должна быть в пределах 3-16 символов."
             });
         }
 
         if (request.query.tag) {
-            if (request.query.tag.length < 3 || request.query.tag.length > 16) {
+            if (request.query.tag.length < 3 || request.query.tag.length > 32) {
                 return reply.status(400).send({
-                    message: "Длина тега магазина должна быть в пределах 3-16 символов."
+                    message: "Длина тега магазина должна быть в пределах 3-32 символов."
                 });
             }
 
@@ -74,13 +74,13 @@ module.exports = async function (fastify, opts) {
             request.query.tag = request.query.tag.toLowerCase();
         }
 
-        if (await Shop.findOne({where: {tag: request.query.tag}})) {
+        if (await Shop.findOne({ where: { tag: request.query.tag }} ) && request.shop.tag !== request.query.tag) {
             return reply.status(400).send({
                 message: "Тег магазина уже занят!"
             });
         }
 
-        if (request.query.description && (request.query.description > 240)) {
+        if (request.query.description && (request.query.description.length > 240)) {
             return reply.status(400).send({
                 message: "Длина описания должна быть не более 240 символов."
             });
