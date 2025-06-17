@@ -1,8 +1,8 @@
 'use strict'
 
-const { uploadToS3 } = require("../../../../utils/s3Util");
+const { uploadToS3 } = require("../../../../../utils/s3Util");
 const {Op} = require("sequelize");
-const {notifyUser} = require("../../../../utils/notifyUtil");
+const {notifyUser} = require("../../../../../utils/notifyUtil");
 module.exports = async function (fastify, opts) {
     fastify.addHook('onRequest', async (request, reply) => {
         try {
@@ -44,7 +44,7 @@ module.exports = async function (fastify, opts) {
         }
     });
 
-    fastify.post('/coop/invite', async function (request, reply) {
+    fastify.post('/invite', async function (request, reply) {
         const { ShopCoOwner, User } = fastify.sequelize.models;
 
         const { uuid, permissions } = request.body
@@ -103,7 +103,7 @@ module.exports = async function (fastify, opts) {
         return reply.send({ message: 'Приглашение отправлено' });
     });
 
-    fastify.post('/coop/delete', async function (request, reply) {
+    fastify.post('/delete', async function (request, reply) {
         const { ShopCoOwner, User } = fastify.sequelize.models;
 
         const { id } = request.body

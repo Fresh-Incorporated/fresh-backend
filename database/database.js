@@ -61,7 +61,7 @@ async function setupDatabase(fastify) {
 
     ShopModel.hasMany(ShopCoOwner, { foreignKey: 'shopId', as: 'co_owners' });
     ShopCoOwner.belongsTo(ShopModel, { foreignKey: 'shopId', as: 'shop' });
-    UserModel.hasMany(ShopCoOwner, { foreignKey: 'userId', as: 'co_owners' });
+    UserModel.hasMany(ShopCoOwner, { foreignKey: 'userId', as: 'co_owns' });
     ShopCoOwner.belongsTo(UserModel, { foreignKey: 'userId', as: 'user' });
 
     fastify.sequelize.sync({force: false, alter: false})
