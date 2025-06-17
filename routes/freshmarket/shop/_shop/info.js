@@ -35,7 +35,7 @@ module.exports = async function (fastify, opts) {
     });
 
     fastify.get('/', async function (request, reply) {
-        const { Shop, Product, Order, LocationCell } = fastify.sequelize.models;
+        const { Shop, Product, User, LocationCell, ShopCoOwner } = fastify.sequelize.models;
 
         const shop = await Shop.findOne({
             where: { id: request.params.shop, ownerId: request.user.id },
@@ -43,6 +43,14 @@ module.exports = async function (fastify, opts) {
                 model: Product,
                 as: 'products',
                 include: [{ model: LocationCell, as: 'refillCell' }]
+            },{
+                model: ShopCoOwner,
+                as: 'co_owners',
+                include: [{
+                    model: User,
+                    as: 'user',
+                    attributes: ["id", "uuid", "nickname"]
+                }]
             }]
         });
 
