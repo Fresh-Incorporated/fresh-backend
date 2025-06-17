@@ -2,54 +2,26 @@
 
 const {uploadToS3} = require("../../../../../../utils/s3Util");
 module.exports = async function (fastify, opts) {
-    fastify.addHook('onRequest', async (request, reply) => {
-        try {
-            const accessToken = request.cookies.access_token;
-            const Shop = fastify.sequelize.model('Shop');
-            const Product = fastify.sequelize.model('Product');
-            if (!accessToken) {
-                return reply.status(401).send({error: 'Missing access token'});
-            }
-
-            request.user = fastify.jwt.verify(accessToken);
-
-            const shop = await Shop.findOne({
-                where: {id: request.params.shop, ownerId: request.user.id},
-                attributes: ['id', 'name', 'description', 'icon', 'tag', 'verify_status']
-            });
-
-            if (!shop) {
-                return reply.status(400).send({
-                    message: "Магазин не существует или у вас недостаточно прав."
-                });
-            }
-
-            request.shop = shop
-
-            const product = await Product.findOne({where: {shopId: request.shop.id, id: request.params.product}});
-
-            if (product.verify_status === 0) {
-                return reply.status(400).send({
-                    message: "Товар ещё не успел пройти прошлую проверку! Дождитесь её завершения и попробуйте снова. "
-                });
-            }
-
-            if (product.refill_status !== 0) {
-                return reply.status(400).send({
-                    message: "Нельзя изменить товар который пополняется. "
-                });
-            }
-
-            request.product = product
-        } catch (err) {
-            reply.status(401).send({error: 'Unauthorized'});
-        }
-    });
-
-    fastify.post('/edit', async function (request, reply) {
+    fastify.post('/edit', { preHandler: fastify.requireProductAccess }, async function (request, reply) {
         const User = fastify.sequelize.model('User');
         const Product = fastify.sequelize.model('Product');
         const ProductHistory = fastify.sequelize.model('ProductHistory');
+
+        if (!request.isOwner) return reply.status(400).send({
+            message: "Магазин не существует или у вас недостаточно прав."
+        });
+
+        if (request.product.verify_status === 0) {
+            return reply.status(400).send({
+                message: "Товар ещё не успел пройти прошлую проверку! Дождитесь её завершения и попробуйте снова. "
+            });
+        }
+
+        if (request.product.refill_status !== 0) {
+            return reply.status(400).send({
+                message: "Нельзя изменить товар который пополняется. "
+            });
+        }
 
         const user = await User.findOne({
             where: {

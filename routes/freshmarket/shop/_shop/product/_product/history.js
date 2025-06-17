@@ -3,7 +3,6 @@
 module.exports = async function (fastify, opts) {
     fastify.get('/history', {
         preHandler: [
-            fastify.requireAuth,
             fastify.requireProductAccess
         ]
     }, async function (request, reply) {

@@ -3,51 +3,18 @@
 const { uploadToS3 } = require("../../../../utils/s3Util");
 const {notifyWorkers} = require("../../../../utils/notifyUtil");
 module.exports = async function (fastify, opts) {
-    fastify.addHook('onRequest', async (request, reply) => {
-        try {
-            const accessToken = request.cookies.access_token;
-            const Shop = fastify.sequelize.model('Shop');
-            if (!accessToken) {
-                return reply.status(401).send({ error: 'Missing access token' });
-            }
-
-            request.user = fastify.jwt.verify(accessToken);
-
-            const shop = await Shop.findOne({ where: { id: request.params.shop, ownerId: request.user.id }, attributes: ['id', 'name', 'description', 'icon', 'tag', 'verify_status'] });
-
-            if (!shop) {
-                return reply.status(400).send({
-                    message: "Магазин не существует или у вас недостаточно прав."
-                });
-            }
-
-            if (shop.verify_status === 0) {
-                return reply.status(400).send({
-                    message: "Ваш магазин ещё не успел пройти прошлую проверку! Дождитесь её завершения и попробуйте снова. "
-                });
-            }
-
-            request.shop = shop
-        } catch (err) {
-            reply.status(401).send({ error: 'Unauthorized' });
-        }
-    });
-
-    fastify.post('/edit', async function (request, reply) {
+    fastify.post('/edit', { preHandler: fastify.requireShopAccess }, async function (request, reply) {
         const User = fastify.sequelize.model('User');
         const Shop = fastify.sequelize.model('Shop');
         const ShopHistory = fastify.sequelize.model('ShopHistory');
 
-        const user = await User.findOne({
-            where: {
-                id: request.user.id
-            },
-            attributes: ['id'],
+        if (!request.isOwner) return reply.status(400).send({
+            message: "Магазин не существует или у вас недостаточно прав."
         });
 
-        if (!user) {
+        if (request.shop.verify_status === 0) {
             return reply.status(400).send({
-                message: "Пользователь не найден."
+                message: "Ваш магазин ещё не успел пройти прошлую проверку! Дождитесь её завершения и попробуйте снова. "
             });
         }
 

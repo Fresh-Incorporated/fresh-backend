@@ -32,6 +32,10 @@ module.exports = async function (fastify, opts) {
             ]
         })
 
+        if (!shop) {
+            return reply.status(400).send({ message: "Магазин не найден!" });
+        }
+
         return reply.status(200).send(shop);
     })
 }

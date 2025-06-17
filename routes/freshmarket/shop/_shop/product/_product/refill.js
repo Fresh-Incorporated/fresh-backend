@@ -4,66 +4,23 @@ const { uploadToS3 } = require("../../../../../../utils/s3Util");
 const {Sequelize, Op} = require("sequelize");
 const {notifyWorkers} = require("../../../../../../utils/notifyUtil");
 module.exports = async function (fastify, opts) {
-    fastify.addHook('onRequest', async (request, reply) => {
-        const User = fastify.sequelize.model('User');
-        const Shop = fastify.sequelize.model('Shop');
-        try {
-            const accessToken = request.cookies.access_token;
-            if (!accessToken) {
-                return reply.status(401).send({ error: 'Missing access token' });
-            }
-
-            request.user = fastify.jwt.verify(accessToken);
-
-            const user = await User.findOne({
-                where: {
-                    id: request.user.id
-                },
-                attributes: ['id'],
-            });
-
-            if (!user) {
-                return reply.status(400).send({
-                    message: "Пользователь не найден."
-                });
-            }
-
-            request.user = user;
-
-            const shop = await Shop.findOne({ where: { id: request.params.shop, ownerId: request.user.id }, attributes: ['id'] });
-
-            if (!shop) {
-                return reply.status(400).send({
-                    message: "Магазин не существует или у вас недостаточно прав."
-                });
-            }
-            request.shop = shop
-        } catch (err) {
-            console.error(err);
-            reply.status(401).send({ error: 'Unauthorized' });
-        }
-    });
-
-    fastify.post('/refill', async function (request, reply) {
+    fastify.post('/refill', { preHandler: fastify.requireProductAccess }, async function (request, reply) {
         const Location = fastify.sequelize.model('Location');
         const LocationCell = fastify.sequelize.model('LocationCell');
         const Product = fastify.sequelize.model('Product');
         const ProductHistory = fastify.sequelize.model('ProductHistory');
 
-        const product = await Product.findOne({ where: { shopId: request.shop.id, id: request.params.product }, attributes: ['id', 'cellId', 'verify_status', 'refill_status'] });
+        if (!request.isOwner) return reply.status(400).send({
+            message: "Магазин не существует или у вас недостаточно прав."
+        });
 
-        if (!product) {
-            return reply.status(400).send({
-                message: "Товар не существует или у вас недостаточно прав."
-            });
-        }
 
-        if (product.verify_status !== 1) {
+        if (request.product.verify_status !== 1) {
             return reply.status(400).send({ message: "Товар не проверен" })
         }
 
 
-        if (product.cellId == null || product.refill_status > 0) {
+        if (request.product.cellId == null || request.product.refill_status > 0) {
             return reply.status(400).send({ message: "Товар уже пополняется" })
         }
 
@@ -94,7 +51,7 @@ module.exports = async function (fastify, opts) {
             return reply.status(400).send({ message: "Все ячейки для пополнения заняты. Попробуйте позже" })
         }
 
-        await product.update({
+        await request.product.update({
             refill_status: 1,
             refillCellId: cell.id,
         })
@@ -113,44 +70,40 @@ module.exports = async function (fastify, opts) {
                 },
             },
             userId: request.user.id, // Тот кто создал запрос на пополнение
-            productId: product.id,
+            productId: request.product.id,
         })
 
         return reply.status(200).send({ message: "Ячейка для пополнения выделена! ", cell })
     });
 
-    fastify.post('/refill/end', async function (request, reply) {
+    fastify.post('/refill/end', { preHandler: fastify.requireProductAccess }, async function (request, reply) {
         const ProductHistory = fastify.sequelize.model('ProductHistory');
-        const Product = fastify.sequelize.model('Product');
 
-        const product = await Product.findOne({ where: { shopId: request.shop.id, id: request.params.product }, attributes: ['id', 'verify_status', 'refill_status'] });
+        if (!request.isOwner) return reply.status(400).send({
+            message: "Магазин не существует или у вас недостаточно прав."
+        });
 
-        if (!product) {
-            return reply.status(400).send({
-                message: "Товар не существует или у вас недостаточно прав."
-            });
-        }
 
-        if (product.verify_status !== 1) {
+        if (request.product.verify_status !== 1) {
             return reply.status(400).send({ message: "Товар не проверен" })
         }
 
-        if (product.refill_status === 0) {
+        if (request.product.refill_status === 0) {
             return reply.status(400).send({ message: "Товар не пополняется" })
         }
 
-        if (product.refill_status === 2) {
+        if (request.product.refill_status === 2) {
             return reply.status(400).send({ message: "Товар уже пополнен" })
         }
 
-        await product.update({
+        await request.product.update({
             refill_status: 2
         })
 
         await ProductHistory.create({
             action_type: "refill_waiting",
             userId: request.user.id, // Тот кто завершил пополнение
-            productId: product.id,
+            productId: request.product.id,
         })
 
         notifyWorkers(fastify, 2, "fm_logic_refill", "Новое пополнение", "Пополните товар как можно скорей!", "/cabinet/freshmarket/work/logic/refill")

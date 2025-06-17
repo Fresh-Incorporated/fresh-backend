@@ -4,48 +4,12 @@ const { uploadToS3 } = require("../../../../../utils/s3Util");
 const {Op} = require("sequelize");
 const {notifyUser} = require("../../../../../utils/notifyUtil");
 module.exports = async function (fastify, opts) {
-    fastify.addHook('onRequest', async (request, reply) => {
-        try {
-            const { User, Shop } = fastify.sequelize.models;
-            const accessToken = request.cookies.access_token;
-            if (!accessToken) {
-                return reply.status(401).send({ error: 'Missing access token' });
-            }
-
-            request.user = fastify.jwt.verify(accessToken);
-
-            request.user = await User.findOne({
-                where: {
-                    id: request.user.id
-                },
-                attributes: { exclude: ['updatedAt'] },
-            });
-
-            if (!request.user) {
-                return reply.status(400).send({
-                    message: "Пользователь не найден."
-                });
-            }
-
-            const shop = await Shop.findOne({
-                where: { id: request.params.shop, ownerId: request.user.id },
-                attributes: ['id', 'name', 'description', 'icon', 'tag', 'verify_status']
-            });
-
-            if (!shop) {
-                return reply.status(400).send({
-                    message: "Магазин не существует или у вас недостаточно прав."
-                });
-            }
-
-            request.shop = shop
-        } catch (err) {
-            reply.status(401).send({ error: 'Unauthorized' });
-        }
-    });
-
-    fastify.post('/invite', async function (request, reply) {
+    fastify.post('/invite', { preHandler: fastify.requireShopAccess }, async function (request, reply) {
         const { ShopCoOwner, User } = fastify.sequelize.models;
+
+        if (!request.isOwner) return reply.status(400).send({
+            message: "Магазин не существует или у вас недостаточно прав."
+        });
 
         const { uuid, permissions } = request.body
         if (!uuid || typeof uuid !== 'string') {
@@ -103,8 +67,12 @@ module.exports = async function (fastify, opts) {
         return reply.send({ message: 'Приглашение отправлено' });
     });
 
-    fastify.post('/delete', async function (request, reply) {
+    fastify.post('/delete', { preHandler: fastify.requireShopAccess }, async function (request, reply) {
         const { ShopCoOwner, User } = fastify.sequelize.models;
+
+        if (!request.isOwner) return reply.status(400).send({
+            message: "Магазин не существует или у вас недостаточно прав."
+        });
 
         const { id } = request.body
         if (!id) {

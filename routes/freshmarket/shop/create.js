@@ -3,37 +3,11 @@
 const { uploadToS3 } = require("../../../utils/s3Util");
 const {notifyWorkers} = require("../../../utils/notifyUtil");
 module.exports = async function (fastify, opts) {
-    fastify.addHook('onRequest', async (request, reply) => {
-        try {
-            const accessToken = request.cookies.access_token;
-            if (!accessToken) {
-                return reply.status(401).send({ error: 'Missing access token' });
-            }
-
-            request.user = fastify.jwt.verify(accessToken);
-        } catch (err) {
-            reply.status(401).send({ error: 'Unauthorized' });
-        }
-    });
-
-    fastify.post('/create', async function (request, reply) {
+    fastify.post('/create', { preHandler: fastify.requireAuth }, async function (request, reply) {
         const User = fastify.sequelize.model('User');
         const Shop = fastify.sequelize.model('Shop');
         const ShopHistory = fastify.sequelize.model('ShopHistory');
         const BalanceHistory = fastify.sequelize.model('BalanceHistory');
-
-        const user = await User.findOne({
-            where: {
-                id: request.user.id
-            },
-            attributes: ['id', 'balance'],
-        });
-
-        if (!user) {
-            return reply.status(400).send({
-                message: "Пользователь не найден."
-            });
-        }
 
         if (request.query.name.length < 3 || request.query.name.length > 16) {
             return reply.status(400).send({
@@ -51,8 +25,8 @@ module.exports = async function (fastify, opts) {
 
         const price = 16 + 64 * shops_count;
 
-        if (user.balance < price) {
-            return reply.status(402).send({ message: "Недостаточно средств. Не хватает: " + (price - user.balance) });
+        if (request.user.balance < price) {
+            return reply.status(402).send({ message: "Недостаточно средств. Не хватает: " + (price - request.user.balance) });
         }
 
         let fileUrl = process.env.DEFAULT_SHOP_ICON; // Путь по умолчанию
@@ -90,11 +64,11 @@ module.exports = async function (fastify, opts) {
                 icon: fileUrl,
             });
 
-            await user.decrement({ balance: price });
+            await request.user.decrement({ balance: price });
 
             await ShopHistory.create({
                 action_type: "created",
-                userId: user.id, // Тот кто создал магазин
+                userId: request.user.id, // Тот кто создал магазин
                 shopId: newShop.id,
                 data: {
                     name: newShop.name,
