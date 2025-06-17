@@ -102,4 +102,39 @@ module.exports = async function (fastify, opts) {
 
         return reply.send({ message: 'Приглашение отправлено' });
     });
+
+    fastify.post('/coop/delete', async function (request, reply) {
+        const { ShopCoOwner, User } = fastify.sequelize.models;
+
+        const { id } = request.body
+        if (!id) {
+            return reply.status(400).send({ message: 'Укажите пользователя' });
+        }
+
+        const user = await User.findOne({
+            where: { id },
+            attributes: ['id']
+        });
+
+        if (!user) {
+            return reply.status(404).send({ message: 'Пользователь не найден' });
+        }
+
+        const existingCoOwner = await ShopCoOwner.findOne({
+            where: {
+                shopId: request.shop.id,
+                userId: user.id,
+            }
+        });
+
+        if (!existingCoOwner) {
+            return reply.status(400).send({ message: 'Этот пользователь не совладелец' });
+        }
+
+        await existingCoOwner.destroy()
+
+        notifyUser(fastify, user.id, "fm_removed_from_shop_" + user.id, "Удаление из магазина", "Вас больше не совладелец магазина " + request.shop.name, "/cabinet")
+
+        return reply.send({ message: 'Пользователь больше не является совладельцем.' });
+    });
 };
