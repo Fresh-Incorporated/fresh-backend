@@ -3,21 +3,17 @@
 const { Op } = require("sequelize");
 
 module.exports = async function (fastify, opts) {
-    fastify.post('/invites/accept', { preHandler: fastify.requireShopAccess }, async function (request, reply) {
-        const { ShopCoOwner } = fastify.sequelize.models;
+    fastify.post('/invites/accept', { preHandler: fastify.requireAuth }, async function (request, reply) {
+        const { User, Shop,ShopCoOwner } = fastify.sequelize.models;
 
-        const shop = await request.shop.reload({
-            attributes: ['id', 'name', 'description', 'icon', 'tag', 'verify_status'],
-            include: {
-                model: ShopCoOwner,
-                as: "co_owners",
-                where: {
-                    userId: request.user.id,
-                    status: "pending"
-                },
-                required: true
-            },
+        const shop = await Shop.findOne({
+            where: { id: request.params.shop },
+            attributes: ['id'],
         });
+
+        if (!shop) {
+            return reply.status(400).send({ message: 'Магазин не найден.' });
+        }
 
         const coOwner = await ShopCoOwner.findOne({
             where: {
@@ -37,20 +33,12 @@ module.exports = async function (fastify, opts) {
         return reply.send({ message: 'Приглашение принято.' });
     });
 
-    fastify.post('/invites/decline', { preHandler: fastify.requireShopAccess }, async function (request, reply) {
-        const { ShopCoOwner } = fastify.sequelize.models;
+    fastify.post('/invites/decline', { preHandler: fastify.requireAuth }, async function (request, reply) {
+        const { User, Shop,ShopCoOwner } = fastify.sequelize.models;
 
-        const shop = await request.shop.reload({
-            attributes: ['id', 'name', 'description', 'icon', 'tag', 'verify_status'],
-            include: {
-                model: ShopCoOwner,
-                as: "co_owners",
-                where: {
-                    userId: request.user.id,
-                    status: "pending"
-                },
-                required: true
-            },
+        const shop = await Shop.findOne({
+            where: { id: request.params.shop },
+            attributes: ['id'],
         });
 
         const coOwner = await ShopCoOwner.findOne({
