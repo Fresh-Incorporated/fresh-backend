@@ -46,15 +46,31 @@ module.exports = fp(async (fastify, opts) => {
         }
 
         const isOwner = shop.ownerId === request.user.id;
-        const isCoOwner = shop.co_owners.length > 0;
+        const coOwnerRecord = shop.co_owners[0] ?? null;
 
-        if (!isOwner && !isCoOwner) {
+        if (!isOwner && !coOwnerRecord) {
             return reply.status(403).send({ message: 'Недостаточно прав' });
         }
 
         request.shop = shop;
         request.isOwner = isOwner;
-        request.isCoOwner = isCoOwner;
+        request.isCoOwner = !!coOwnerRecord;
+        request.coOwner = coOwnerRecord;
+    });
+
+    fastify.decorateRequest('hasShopPermission', function (permission) {
+        if (this.isOwner) return true;
+        if (this.coOwner && this.coOwner[permission]) return true;
+        return false;
+    });
+
+    // Дропает ошибкой запрос если чел совладелец но у него нет права
+    // Например: request.assertShopPermission('delete_products')
+    fastify.decorateRequest('assertShopPermission', function (permission) {
+        if (this.isOwner) return;
+        if (this.coOwner && this.coOwner[permission]) return;
+
+        throw fastify.httpErrors.forbidden('Недостаточно прав');
     });
 
     fastify.decorate('requireProductAccess', async function (request, reply) {

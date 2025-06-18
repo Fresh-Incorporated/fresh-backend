@@ -4,11 +4,9 @@ const { uploadToS3 } = require("../../../../../../utils/s3Util");
 const {Sequelize, Op} = require("sequelize");
 module.exports = async function (fastify, opts) {
     fastify.post('/delete', { preHandler: fastify.requireProductAccess }, async function (request, reply) {
-        const Order = fastify.sequelize.model('Order');
+        request.assertShopPermission('delete_products')
 
-        if (!request.isOwner) return reply.status(400).send({
-            message: "Магазин не существует или у вас недостаточно прав."
-        });
+        const Order = fastify.sequelize.model('Order');
 
         if (request.product.count > 0) {
             return reply.status(400).send({message: "Нельзя удалить товар который есть на складе!"});

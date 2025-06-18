@@ -3,7 +3,8 @@
 const {uploadToS3} = require("../../../../../../utils/s3Util");
 module.exports = async function (fastify, opts) {
     fastify.post('/edit', { preHandler: fastify.requireProductAccess }, async function (request, reply) {
-        const User = fastify.sequelize.model('User');
+        request.assertShopPermission('edit_products')
+
         const Product = fastify.sequelize.model('Product');
         const ProductHistory = fastify.sequelize.model('ProductHistory');
 
@@ -20,19 +21,6 @@ module.exports = async function (fastify, opts) {
         if (request.product.refill_status !== 0) {
             return reply.status(400).send({
                 message: "Нельзя изменить товар который пополняется. "
-            });
-        }
-
-        const user = await User.findOne({
-            where: {
-                id: request.user.id
-            },
-            attributes: ['id'],
-        });
-
-        if (!user) {
-            return reply.status(400).send({
-                message: "Пользователь не найден."
             });
         }
 
@@ -110,7 +98,7 @@ module.exports = async function (fastify, opts) {
 
             await ProductHistory.create({
                 action_type: "edited",
-                userId: user.id,
+                userId: request.user.id,
                 productId: request.product.id,
                 data: historyChanges,
             })
@@ -118,7 +106,7 @@ module.exports = async function (fastify, opts) {
             if (changes.verify_status === 0) {
                 await ProductHistory.create({
                     action_type: "recheck",
-                    userId: user.id,
+                    userId: request.user.id,
                     productId: request.product.id,
                 })
                 return reply.status(200).send({
@@ -131,7 +119,7 @@ module.exports = async function (fastify, opts) {
             });
         } catch (err) {
             console.error(err);
-            return reply.status(500).send({message: 'Ошибка при создании магазина.'});
+            return reply.status(500).send({message: 'Ошибка при изменении товара.'});
         }
     });
 };

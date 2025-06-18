@@ -16,7 +16,7 @@ module.exports = async function (fastify, opts) {
         }
 
         if (!request.isOwner) return reply.status(400).send({
-            message: "Магазин не существует или у вас недостаточно прав."
+            message: "Недостаточно прав."
         });
 
         try {

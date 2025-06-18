@@ -5,6 +5,8 @@ const {Sequelize, Op} = require("sequelize");
 const {notifyWorkers} = require("../../../../../utils/notifyUtil");
 module.exports = async function (fastify, opts) {
     fastify.post('/create', { preHandler: fastify.requireShopAccess }, async function (request, reply) {
+        request.assertShopPermission('create_products')
+
         const User = fastify.sequelize.model('User');
         const Shop = fastify.sequelize.model('Shop');
         const Product = fastify.sequelize.model('Product');

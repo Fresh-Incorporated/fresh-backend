@@ -5,15 +5,12 @@ const {Sequelize, Op} = require("sequelize");
 const {notifyWorkers} = require("../../../../../../utils/notifyUtil");
 module.exports = async function (fastify, opts) {
     fastify.post('/refill', { preHandler: fastify.requireProductAccess }, async function (request, reply) {
+        request.assertShopPermission('refill_products')
+
         const Location = fastify.sequelize.model('Location');
         const LocationCell = fastify.sequelize.model('LocationCell');
         const Product = fastify.sequelize.model('Product');
         const ProductHistory = fastify.sequelize.model('ProductHistory');
-
-        if (!request.isOwner) return reply.status(400).send({
-            message: "Магазин не существует или у вас недостаточно прав."
-        });
-
 
         if (request.product.verify_status !== 1) {
             return reply.status(400).send({ message: "Товар не проверен" })
@@ -77,12 +74,9 @@ module.exports = async function (fastify, opts) {
     });
 
     fastify.post('/refill/end', { preHandler: fastify.requireProductAccess }, async function (request, reply) {
+        request.assertShopPermission('refill_products')
+
         const ProductHistory = fastify.sequelize.model('ProductHistory');
-
-        if (!request.isOwner) return reply.status(400).send({
-            message: "Магазин не существует или у вас недостаточно прав."
-        });
-
 
         if (request.product.verify_status !== 1) {
             return reply.status(400).send({ message: "Товар не проверен" })

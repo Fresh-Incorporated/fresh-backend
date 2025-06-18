@@ -4,11 +4,12 @@ const { uploadToS3 } = require("../../../../utils/s3Util");
 const {Op} = require("sequelize");
 module.exports = async function (fastify, opts) {
     fastify.post('/withdraw', { preHandler: fastify.requireShopAccess }, async function (request, reply) {
-        const User = fastify.sequelize.model('User');
-        const Shop = fastify.sequelize.model('Shop');
         const ShopHistory = fastify.sequelize.model('ShopHistory');
         const BalanceHistory = fastify.sequelize.model('BalanceHistory');
 
+        if (!request.isOwner) return reply.status(400).send({
+            message: "Недостаточно прав."
+        });
 
         const value = Math.floor(request.shop.balance);
         if (value < 10) {

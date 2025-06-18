@@ -4,13 +4,10 @@ const { uploadToS3 } = require("../../../../utils/s3Util");
 const {notifyWorkers} = require("../../../../utils/notifyUtil");
 module.exports = async function (fastify, opts) {
     fastify.post('/edit', { preHandler: fastify.requireShopAccess }, async function (request, reply) {
-        const User = fastify.sequelize.model('User');
+        request.assertShopPermission('edit_shop_info')
+
         const Shop = fastify.sequelize.model('Shop');
         const ShopHistory = fastify.sequelize.model('ShopHistory');
-
-        if (!request.isOwner) return reply.status(400).send({
-            message: "Магазин не существует или у вас недостаточно прав."
-        });
 
         if (request.shop.verify_status === 0) {
             return reply.status(400).send({
@@ -103,14 +100,14 @@ module.exports = async function (fastify, opts) {
 
             await ShopHistory.create({
                 action_type: "edited",
-                userId: user.id,
+                userId: request.user.id,
                 shopId: currentShop.id,
                 data: changes,
             })
 
             await ShopHistory.create({
                 action_type: "recheck",
-                userId: user.id,
+                userId: request.user.id,
                 shopId: currentShop.id,
             })
 
@@ -122,7 +119,7 @@ module.exports = async function (fastify, opts) {
             });
         } catch (err) {
             console.error(err);
-            return reply.status(500).send({ message: 'Ошибка при создании магазина.' });
+            return reply.status(500).send({ message: 'Ошибка при изменении магазина.' });
         }
     });
 };
