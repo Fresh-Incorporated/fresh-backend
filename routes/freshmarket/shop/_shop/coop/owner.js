@@ -105,4 +105,56 @@ module.exports = async function (fastify, opts) {
 
         return reply.send({ message: 'Пользователь больше не является совладельцем.' });
     });
+
+    fastify.post('/edit', { preHandler: fastify.requireShopAccess }, async function (request, reply) {
+        const { ShopCoOwner, User } = fastify.sequelize.models;
+
+        if (!request.isOwner) {
+            return reply.status(400).send({
+                message: "Магазин не существует или у вас недостаточно прав."
+            });
+        }
+
+        const { id, permissions } = request.body;
+
+        if (!id) {
+            return reply.status(400).send({ message: 'Укажите пользователя' });
+        }
+
+        const targetUser = await User.findOne({
+            where: { id },
+            attributes: ['id']
+        });
+
+        if (!targetUser) {
+            return reply.status(404).send({ message: 'Пользователь не найден' });
+        }
+
+        // Проверяем, что он является совладельцем
+        const coOwner = await ShopCoOwner.findOne({
+            where: {
+                shopId: request.shop.id,
+                userId: targetUser.id,
+                status: 'accepted'
+            }
+        });
+
+        if (!coOwner) {
+            return reply.status(400).send({ message: 'Этот пользователь не является совладельцем' });
+        }
+
+        // Обновляем права
+        await coOwner.update({
+            edit_shop_info: !!permissions.edit_shop_info,
+            create_products: !!permissions.create_products,
+            edit_products: !!permissions.edit_products,
+            refill_products: !!permissions.refill_products,
+            delete_products: !!permissions.delete_products
+        });
+
+        notifyUser(fastify, targetUser.id, "fm_permissions_updated_" + targetUser.id, "Изменение прав в магазине", "Ваши права в магазине " + request.shop.name + " были изменены", "/cabinet");
+
+        return reply.send({ message: 'Права пользователя обновлены.' });
+    });
+
 };
