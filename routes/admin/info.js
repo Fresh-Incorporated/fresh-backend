@@ -7,9 +7,10 @@ module.exports = async function (fastify, opts) {
     fastify.get('/stats', { preHandler: fastify.requireAuth }, async function (request, reply) {
         if (!request.user.admin) return reply.status(403).send({ message: "Недостаточно прав." });
 
-
         const User = fastify.sequelize.model('User');
         const Shop = fastify.sequelize.model('Shop');
+        const Order = fastify.sequelize.model('Order');
+        const Location = fastify.sequelize.model('Location');
 
         // Кол-во пользователей
         const totalUsers = await User.count();
@@ -56,13 +57,11 @@ module.exports = async function (fastify, opts) {
             raw: true
         });
 
-        // Преобразование выборки в мапу для быстрого доступа
         const registrationsMap = {};
         for (const r of registrationsRaw) {
             registrationsMap[r.date] = Number(r.count);
         }
 
-        // Сбор финального массива
         const registrations = [];
         for (let i = 0; i < 90; i++) {
             const date = format(subDays(today, 89 - i), 'yyyy-MM-dd');
@@ -72,12 +71,77 @@ module.exports = async function (fastify, opts) {
             });
         }
 
+        // Заказы за последние 90 дней (всего и по филиалам)
+        const ordersRaw = await Order.findAll({
+            attributes: [
+                [literal('DATE("createdAt")'), 'date'],
+                [fn('COUNT', '*'), 'count'],
+                'branchId'
+            ],
+            where: {
+                createdAt: {
+                    [Op.gte]: startDate
+                }
+            },
+            group: [literal('DATE("createdAt")'), 'branchId'],
+            order: [[literal('DATE("createdAt")'), 'ASC']],
+            raw: true
+        });
+
+        // Получаем список филиалов
+        const branches = await Location.findAll({
+            where: { type: 'branch' },
+            attributes: ['id', 'name'],
+            raw: true
+        });
+
+        const branchMap = {};
+        for (const branch of branches) {
+            branchMap[branch.id] = branch.name;
+        }
+
+        const ordersTotalMap = {};
+        const ordersByBranchMap = {};
+
+        for (const o of ordersRaw) {
+            const date = o.date;
+            const count = Number(o.count);
+            const branchId = o.branchId;
+
+            // Общие заказы по дням
+            ordersTotalMap[date] = (ordersTotalMap[date] || 0) + count;
+
+            // Заказы по филиалу
+            if (branchId) {
+                if (!ordersByBranchMap[branchId]) ordersByBranchMap[branchId] = {};
+                ordersByBranchMap[branchId][date] = (ordersByBranchMap[branchId][date] || 0) + count;
+            }
+        }
+
+        const orders = [];
+        for (let i = 0; i < 90; i++) {
+            const date = format(subDays(today, 89 - i), 'yyyy-MM-dd');
+
+            const entry = {
+                date,
+                total: ordersTotalMap[date] || 0,
+                branches: {}
+            };
+
+            for (const branchId in branchMap) {
+                entry.branches[branchMap[branchId]] = ordersByBranchMap[branchId]?.[date] || 0;
+            }
+
+            orders.push(entry);
+        }
+
         return reply.status(200).send({
             totalSpentOnShops,
             totalBalanceUsers,
             totalBalanceShops,
             totalUsers,
-            registrations
+            registrations,
+            orders
         });
     });
 };

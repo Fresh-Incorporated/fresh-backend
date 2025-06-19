@@ -64,7 +64,7 @@ async function setupDatabase(fastify) {
     UserModel.hasMany(ShopCoOwner, { foreignKey: 'userId', as: 'co_owns' });
     ShopCoOwner.belongsTo(UserModel, { foreignKey: 'userId', as: 'user' });
 
-    fastify.sequelize.sync({force: false, alter: false})
+    fastify.sequelize.sync({force: false, alter: true})
         .then(async () => {
             console.log("Database synchronized successfully")
         })
