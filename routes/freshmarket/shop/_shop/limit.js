@@ -3,20 +3,7 @@
 const { uploadToS3 } = require("../../../../utils/s3Util");
 const {Op} = require("sequelize");
 module.exports = async function (fastify, opts) {
-    fastify.addHook('onRequest', async (request, reply) => {
-        try {
-            const accessToken = request.cookies.access_token;
-            if (!accessToken) {
-                return reply.status(401).send({ error: 'Missing access token' });
-            }
-
-            request.user = fastify.jwt.verify(accessToken);
-        } catch (err) {
-            reply.status(401).send({ error: 'Unauthorized' });
-        }
-    });
-
-    fastify.post('/limit/increase', async function (request, reply) {
+    fastify.post('/limit/increase', { preHandler: fastify.requireShopAccess }, async function (request, reply) {
         const User = fastify.sequelize.model('User');
         const Shop = fastify.sequelize.model('Shop');
         const ShopHistory = fastify.sequelize.model('ShopHistory');
@@ -27,6 +14,10 @@ module.exports = async function (fastify, opts) {
         if (!count || count <= 0 || count > 100) {
             return reply.status(400).send({ message: 'Неверное количество.' });
         }
+
+        if (!request.isOwner) return reply.status(400).send({
+            message: "Недостаточно прав."
+        });
 
         try {
             await fastify.sequelize.transaction(async (t) => {
@@ -41,16 +32,7 @@ module.exports = async function (fastify, opts) {
                     throw new Error("Пользователь не найден.");
                 }
 
-                const shop = await Shop.findOne({
-                    where: { id: request.params.shop, ownerId: user.id },
-                    transaction: t
-                });
-
-                if (!shop) {
-                    throw new Error("Магазин не существует или у вас недостаточно прав.");
-                }
-
-                const current_limit = shop.products_limit;
+                const current_limit = request.shop.products_limit;
 
                 if (current_limit + count > 25) {
                     throw new Error("На данный момент максимальный лимит — 25.");
@@ -62,7 +44,7 @@ module.exports = async function (fastify, opts) {
                     throw new Error("Недостаточно средств, пополните баланс.");
                 }
 
-                await shop.increment({ products_limit: count }, { transaction: t });
+                await request.shop.increment({ products_limit: count }, { transaction: t });
 
                 await User.update(
                     { balance: user.balance - price },
@@ -72,13 +54,13 @@ module.exports = async function (fastify, opts) {
                 await ShopHistory.create({
                     action_type: "limit_increase",
                     userId: user.id,
-                    shopId: shop.id,
+                    shopId: request.shop.id,
                     data: { count }
                 }, { transaction: t });
 
                 await BalanceHistory.create({
                     action_type: "freshmarket_pay",
-                    message: `Увеличение лимита магазина ${shop.name} [${shop.id}]`,
+                    message: `Увеличение лимита магазина ${request.shop.name} [${request.shop.id}]`,
                     userId: user.id,
                     value: -price
                 }, { transaction: t });

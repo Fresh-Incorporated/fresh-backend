@@ -4,34 +4,10 @@ const { Op, fn, col, literal } = require('sequelize');
 const { format, subDays } = require('date-fns');
 
 module.exports = async function (fastify, opts) {
-    // Проверка авторизации и прав
-    fastify.addHook('onRequest', async (request, reply) => {
-        const User = fastify.sequelize.model('User');
-        const token = request.cookies.access_token;
+    fastify.get('/stats', { preHandler: fastify.requireAuth }, async function (request, reply) {
+        if (!request.user.admin) return reply.status(403).send({ message: "Недостаточно прав." });
 
-        if (!token) {
-            return reply.status(401).send({ error: 'Missing access token' });
-        }
 
-        try {
-            const decoded = fastify.jwt.verify(token);
-
-            const user = await User.findOne({
-                where: { id: decoded.id },
-                attributes: ['id', 'admin']
-            });
-
-            if (!user) return reply.status(400).send({ message: "Пользователь не найден." });
-            if (!user.admin) return reply.status(403).send({ message: "Недостаточно прав." });
-
-            request.user = user;
-        } catch {
-            return reply.status(401).send({ error: 'Unauthorized' });
-        }
-    });
-
-    // Основной маршрут /stats
-    fastify.get('/stats', async function (request, reply) {
         const User = fastify.sequelize.model('User');
         const Shop = fastify.sequelize.model('Shop');
 

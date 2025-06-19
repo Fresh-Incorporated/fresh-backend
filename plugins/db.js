@@ -2,6 +2,7 @@
 
 const fp = require('fastify-plugin');
 const { Sequelize } = require('sequelize');
+const database = require("../database/database");
 
 async function dbConnector(fastify, options) {
     const sequelize = new Sequelize(
@@ -21,6 +22,8 @@ async function dbConnector(fastify, options) {
         console.log('Connection to the database has been established successfully.');
 
         fastify.decorate('sequelize', sequelize);
+
+        await database.setupDatabase(fastify)
     } catch (error) {
         console.error('Unable to connect to the database:', error);
     }

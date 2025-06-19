@@ -2,20 +2,8 @@
 
 const {SPWorlds} = require("spworlds");
 module.exports = async function (fastify, opts) {
-    fastify.addHook('onRequest', async (request, reply) => {
-        try {
-            const accessToken = request.cookies.access_token
-            if (!accessToken) {
-                return reply.status(401).send({ error: 'Missing access token' })
-            }
-
-            request.user = fastify.jwt.verify(accessToken)
-        } catch (err) {
-            reply.status(401).send({ error: 'Unauthorized' })
-        }
-    })
-
     fastify.get('/deposit', {
+        preHandler: fastify.requireAuth,
         config: {
             rateLimit: {
                 timeWindow: '5 minute',
@@ -54,6 +42,7 @@ module.exports = async function (fastify, opts) {
     })
 
     fastify.post('/withdraw', {
+        preHandler: fastify.requireAuth,
         config: {
             rateLimit: {
                 timeWindow: '5 minute',

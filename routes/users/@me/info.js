@@ -3,25 +3,27 @@
 const {Op} = require("sequelize");
 const {startOfDay, subDays, format} = require("date-fns");
 module.exports = async function (fastify, opts) {
-    fastify.addHook('onRequest', async (request, reply) => {
-        try {
-            const accessToken = request.cookies.access_token
-            if (!accessToken) {
-                return reply.status(401).send({message: 'Missing access token'})
-            }
-
-            request.user = fastify.jwt.verify(accessToken)
-        } catch (err) {
-            reply.status(401).send({message: 'Unauthorized'})
-        }
-    })
-
-    fastify.get('/', async function (request, reply) {
-        const User = fastify.sequelize.model('User');
+    fastify.get('/', { preHandler: fastify.requireAuth }, async function (request, reply) {
+        const { User, ShopCoOwner, Shop } = fastify.sequelize.models;
         const user = await User.findOne({
             where: {
                 id: request.user.id
             },
+            include: [
+                {
+                    model: ShopCoOwner,
+                    as: 'co_owns',
+                    where: {
+                        status: 'pending'
+                    },
+                    include: {
+                        model: Shop,
+                        as: "shop",
+                        attributes: ["id", "icon", "name", "description"]
+                    },
+                    required: false
+                }
+            ],
             attributes: ['id', 'nickname', 'uuid', 'discordId', 'balance', 'bonuses', 'fm_worker', 'admin', 'createdAt'],
         })
 
@@ -34,12 +36,8 @@ module.exports = async function (fastify, opts) {
         return reply.status(200).send(user);
     })
 
-    fastify.get('/shops', async function (request, reply) {
-        const User = fastify.sequelize.model('User');
-        const Shop = fastify.sequelize.model('Shop');
-        const Product = fastify.sequelize.model('Product');
-        const Location = fastify.sequelize.model('Location');
-        const LocationCell = fastify.sequelize.model('LocationCell');
+    fastify.get('/shops', { preHandler: fastify.requireAuth }, async function (request, reply) {
+        const { User, Shop, Product, Location, LocationCell, ShopCoOwner } = fastify.sequelize.models;
 
         const user = await User.findOne({
             where: {
@@ -56,31 +54,45 @@ module.exports = async function (fastify, opts) {
 
         const shops = await Shop.findAll({
             where: {
-                ownerId: request.user.id
+                [Op.or]: [
+                    { ownerId: request.user.id },
+                    {
+                        '$co_owners.userId$': request.user.id,
+                        '$co_owners.status$': 'accepted'
+                    }
+                ]
             },
-            attributes: ['id', 'name', 'description', 'icon', 'products_limit', 'verify_status', 'balance', 'createdAt', 'tag'],
-            include: [{
-                model: Product,
-                as: 'products',
-                attributes: ['id', 'name', 'description', 'icon', 'stack_count', 'slots_count', 'price', 'verify_status', 'refill_status', 'count', 'createdAt'],
-                include: [{
-                    model: LocationCell,
-                    as: 'refillCell',
-                    attributes: { exclude: ['locationId'] },
-                    include: [{
-                        model: Location,
-                        as: 'location',
-                        attributes: { exclude: ['deletedAt', 'updatedAt', 'createdAt'] },
-                    }]
-                }]
-            }],
-            order: [['id', 'ASC']]
+            attributes: [
+                'id', 'name', 'description', 'icon',
+                'products_limit', 'verify_status',
+                'balance', 'createdAt', 'tag'
+            ],
+            include: [
+                {
+                    model: Product,
+                    as: 'products',
+                    attributes: [
+                        'id', 'name', 'description', 'icon',
+                        'stack_count', 'slots_count', 'price',
+                        'verify_status', 'refill_status',
+                        'count', 'createdAt'
+                    ],
+                },
+                {
+                    model: ShopCoOwner,
+                    as: 'co_owners',
+                    attributes: ['userId', 'status'], // чтобы подгрузить статус участия
+                    required: false
+                }
+            ],
+            order: [['id', 'ASC']],
+            distinct: true
         });
 
         return reply.status(200).send(shops);
     })
 
-    fastify.get('/orders', async function (request, reply) {
+    fastify.get('/orders', { preHandler: fastify.requireAuth }, async function (request, reply) {
         const User = fastify.sequelize.model('User');
         const Shop = fastify.sequelize.model('Shop');
         const Product = fastify.sequelize.model('Product');
@@ -167,7 +179,7 @@ module.exports = async function (fastify, opts) {
         }
     })
 
-    fastify.get('/history/balance', async function (request, reply) {
+    fastify.get('/history/balance', { preHandler: fastify.requireAuth }, async function (request, reply) {
         const { offset, before } = request.query;
         const User = fastify.sequelize.model('User');
         const BalanceHistory = fastify.sequelize.model('BalanceHistory');
@@ -201,7 +213,7 @@ module.exports = async function (fastify, opts) {
         return reply.status(200).send(history);
     })
 
-    fastify.get('/history/balance/month', async function (request, reply) {
+    fastify.get('/history/balance/month', { preHandler: fastify.requireAuth }, async function (request, reply) {
         const User = fastify.sequelize.model('User');
         const BalanceHistory = fastify.sequelize.model('BalanceHistory');
 

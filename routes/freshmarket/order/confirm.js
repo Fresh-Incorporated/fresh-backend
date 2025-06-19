@@ -2,34 +2,7 @@
 
 const {Op} = require("sequelize");
 module.exports = async function (fastify, opts) {
-    fastify.addHook('onRequest', async (request, reply) => {
-        const User = fastify.sequelize.model('User');
-        try {
-            const accessToken = request.cookies.access_token
-            if (!accessToken) {
-                return reply.status(401).send({error: 'Missing access token'})
-            }
-
-            request.user = fastify.jwt.verify(accessToken)
-
-            request.user = await User.findOne({
-                where: {
-                    id: request.user.id
-                },
-                attributes: { exclude: ['updatedAt'] },
-            });
-
-            if (!request.user) {
-                return reply.status(400).send({
-                    message: "Пользователь не найден."
-                });
-            }
-        } catch (err) {
-            reply.status(401).send({error: 'Unauthorized'})
-        }
-    })
-
-    fastify.post('/:order/confirm', async function (request, reply) {
+    fastify.post('/:order/confirm', { preHandler: fastify.requireAuth },  async function (request, reply) {
         const Order = fastify.sequelize.model('Order');
         const OrderHistory = fastify.sequelize.model('OrderHistory');
 

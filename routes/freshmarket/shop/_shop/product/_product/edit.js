@@ -2,65 +2,25 @@
 
 const {uploadToS3} = require("../../../../../../utils/s3Util");
 module.exports = async function (fastify, opts) {
-    fastify.addHook('onRequest', async (request, reply) => {
-        try {
-            const accessToken = request.cookies.access_token;
-            const Shop = fastify.sequelize.model('Shop');
-            const Product = fastify.sequelize.model('Product');
-            if (!accessToken) {
-                return reply.status(401).send({error: 'Missing access token'});
-            }
+    fastify.post('/edit', { preHandler: fastify.requireProductAccess }, async function (request, reply) {
+        request.assertShopPermission('edit_products')
 
-            request.user = fastify.jwt.verify(accessToken);
-
-            const shop = await Shop.findOne({
-                where: {id: request.params.shop, ownerId: request.user.id},
-                attributes: ['id', 'name', 'description', 'icon', 'tag', 'verify_status']
-            });
-
-            if (!shop) {
-                return reply.status(400).send({
-                    message: "Магазин не существует или у вас недостаточно прав."
-                });
-            }
-
-            request.shop = shop
-
-            const product = await Product.findOne({where: {shopId: request.shop.id, id: request.params.product}});
-
-            if (product.verify_status === 0) {
-                return reply.status(400).send({
-                    message: "Товар ещё не успел пройти прошлую проверку! Дождитесь её завершения и попробуйте снова. "
-                });
-            }
-
-            if (product.refill_status !== 0) {
-                return reply.status(400).send({
-                    message: "Нельзя изменить товар который пополняется. "
-                });
-            }
-
-            request.product = product
-        } catch (err) {
-            reply.status(401).send({error: 'Unauthorized'});
-        }
-    });
-
-    fastify.post('/edit', async function (request, reply) {
-        const User = fastify.sequelize.model('User');
         const Product = fastify.sequelize.model('Product');
         const ProductHistory = fastify.sequelize.model('ProductHistory');
 
-        const user = await User.findOne({
-            where: {
-                id: request.user.id
-            },
-            attributes: ['id'],
+        if (!request.isOwner) return reply.status(400).send({
+            message: "Магазин не существует или у вас недостаточно прав."
         });
 
-        if (!user) {
+        if (request.product.verify_status === 0) {
             return reply.status(400).send({
-                message: "Пользователь не найден."
+                message: "Товар ещё не успел пройти прошлую проверку! Дождитесь её завершения и попробуйте снова. "
+            });
+        }
+
+        if (request.product.refill_status !== 0) {
+            return reply.status(400).send({
+                message: "Нельзя изменить товар который пополняется. "
             });
         }
 
@@ -138,7 +98,7 @@ module.exports = async function (fastify, opts) {
 
             await ProductHistory.create({
                 action_type: "edited",
-                userId: user.id,
+                userId: request.user.id,
                 productId: request.product.id,
                 data: historyChanges,
             })
@@ -146,7 +106,7 @@ module.exports = async function (fastify, opts) {
             if (changes.verify_status === 0) {
                 await ProductHistory.create({
                     action_type: "recheck",
-                    userId: user.id,
+                    userId: request.user.id,
                     productId: request.product.id,
                 })
                 return reply.status(200).send({
@@ -159,7 +119,7 @@ module.exports = async function (fastify, opts) {
             });
         } catch (err) {
             console.error(err);
-            return reply.status(500).send({message: 'Ошибка при создании магазина.'});
+            return reply.status(500).send({message: 'Ошибка при изменении товара.'});
         }
     });
 };
