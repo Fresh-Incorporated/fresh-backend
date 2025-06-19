@@ -4,33 +4,15 @@ const {uploadToS3} = require("../../../../../utils/s3Util");
 const {Sequelize, Op} = require("sequelize");
 const {notifyWorkers} = require("../../../../../utils/notifyUtil");
 module.exports = async function (fastify, opts) {
-    fastify.addHook('onRequest', async (request, reply) => {
-        try {
-            const accessToken = request.cookies.access_token;
-            if (!accessToken) {
-                return reply.status(401).send({error: 'Missing access token'});
-            }
+    fastify.post('/create', { preHandler: fastify.requireShopAccess }, async function (request, reply) {
+        request.assertShopPermission('create_products')
 
-            request.user = fastify.jwt.verify(accessToken);
-        } catch (err) {
-            reply.status(401).send({error: 'Unauthorized'});
-        }
-    });
-
-    fastify.post('/create', async function (request, reply) {
         const User = fastify.sequelize.model('User');
         const Shop = fastify.sequelize.model('Shop');
         const Product = fastify.sequelize.model('Product');
         const Location = fastify.sequelize.model('Location');
         const LocationCell = fastify.sequelize.model('LocationCell');
         const ProductHistory = fastify.sequelize.model('ProductHistory');
-
-        const user = await User.findOne({
-            where: {
-                id: request.user.id
-            },
-            attributes: ['id'],
-        });
 
         if (request.query.name.length < 3 || request.query.name.length > 24) {
             return reply.status(400).send({
@@ -62,26 +44,10 @@ module.exports = async function (fastify, opts) {
             });
         }
 
-        if (!user) {
-            return reply.status(400).send({
-                message: "Пользователь не найден."
-            });
-        }
 
-        const shop = await Shop.findOne({
-            where: {id: request.params.shop, ownerId: request.user.id},
-            attributes: ['id', 'products_limit']
-        });
+        const products_count = await Product.count({ where: {shopId: request.shop.id }});
 
-        if (!shop) {
-            return reply.status(400).send({
-                message: "Магазин не существует или у вас недостаточно прав."
-            });
-        }
-
-        const products_count = await Product.count({where: {shopId: shop.id}});
-
-        if (products_count >= shop.products_limit) {
+        if (products_count >= request.shop.products_limit) {
             return reply.status(402).send({message: "Создан максимум товаров."});
         }
 
@@ -137,7 +103,7 @@ module.exports = async function (fastify, opts) {
 
         try {
             const newProduct = await Product.create({
-                shopId: shop.id,
+                shopId: request.shop.id,
                 name: request.query.name,
                 description: request.query.description,
                 stack_count: request.query.stack_count,
@@ -149,7 +115,7 @@ module.exports = async function (fastify, opts) {
 
             await ProductHistory.create({
                 action_type: "created",
-                userId: user.id, // Тот кто создал товар
+                userId: request.user.id, // Тот кто создал товар
                 productId: newProduct.id,
                 data: {
                     name: newProduct.name,

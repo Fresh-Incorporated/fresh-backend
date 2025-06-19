@@ -30,8 +30,6 @@ module.exports = async function (fastify, opts) {
     }
     return reply.send(error)
   })
-
-  await database.setupDatabase(fastify)
 }
 
 module.exports.options = options

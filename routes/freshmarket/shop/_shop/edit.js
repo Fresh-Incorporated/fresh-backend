@@ -3,64 +3,28 @@
 const { uploadToS3 } = require("../../../../utils/s3Util");
 const {notifyWorkers} = require("../../../../utils/notifyUtil");
 module.exports = async function (fastify, opts) {
-    fastify.addHook('onRequest', async (request, reply) => {
-        try {
-            const accessToken = request.cookies.access_token;
-            const Shop = fastify.sequelize.model('Shop');
-            if (!accessToken) {
-                return reply.status(401).send({ error: 'Missing access token' });
-            }
+    fastify.post('/edit', { preHandler: fastify.requireShopAccess }, async function (request, reply) {
+        request.assertShopPermission('edit_shop_info')
 
-            request.user = fastify.jwt.verify(accessToken);
-
-            const shop = await Shop.findOne({ where: { id: request.params.shop, ownerId: request.user.id }, attributes: ['id', 'name', 'description', 'icon', 'tag', 'verify_status'] });
-
-            if (!shop) {
-                return reply.status(400).send({
-                    message: "Магазин не существует или у вас недостаточно прав."
-                });
-            }
-
-            if (shop.verify_status === 0) {
-                return reply.status(400).send({
-                    message: "Ваш магазин ещё не успел пройти прошлую проверку! Дождитесь её завершения и попробуйте снова. "
-                });
-            }
-
-            request.shop = shop
-        } catch (err) {
-            reply.status(401).send({ error: 'Unauthorized' });
-        }
-    });
-
-    fastify.post('/edit', async function (request, reply) {
-        const User = fastify.sequelize.model('User');
         const Shop = fastify.sequelize.model('Shop');
         const ShopHistory = fastify.sequelize.model('ShopHistory');
 
-        const user = await User.findOne({
-            where: {
-                id: request.user.id
-            },
-            attributes: ['id'],
-        });
-
-        if (!user) {
+        if (request.shop.verify_status === 0) {
             return reply.status(400).send({
-                message: "Пользователь не найден."
+                message: "Ваш магазин ещё не успел пройти прошлую проверку! Дождитесь её завершения и попробуйте снова. "
             });
         }
 
-        if (request.query.name && (request.query.name < 3 || request.query.name > 16)) {
+        if (request.query.name && (request.query.name.length < 3 || request.query.name.length > 16)) {
             return reply.status(400).send({
                 message: "Длина названия должна быть в пределах 3-16 символов."
             });
         }
 
         if (request.query.tag) {
-            if (request.query.tag.length < 3 || request.query.tag.length > 16) {
+            if (request.query.tag.length < 3 || request.query.tag.length > 32) {
                 return reply.status(400).send({
-                    message: "Длина тега магазина должна быть в пределах 3-16 символов."
+                    message: "Длина тега магазина должна быть в пределах 3-32 символов."
                 });
             }
 
@@ -74,13 +38,13 @@ module.exports = async function (fastify, opts) {
             request.query.tag = request.query.tag.toLowerCase();
         }
 
-        if (await Shop.findOne({where: {tag: request.query.tag}})) {
+        if (await Shop.findOne({ where: { tag: request.query.tag }} ) && request.shop.tag !== request.query.tag) {
             return reply.status(400).send({
                 message: "Тег магазина уже занят!"
             });
         }
 
-        if (request.query.description && (request.query.description > 240)) {
+        if (request.query.description && (request.query.description.length > 240)) {
             return reply.status(400).send({
                 message: "Длина описания должна быть не более 240 символов."
             });
@@ -136,14 +100,14 @@ module.exports = async function (fastify, opts) {
 
             await ShopHistory.create({
                 action_type: "edited",
-                userId: user.id,
+                userId: request.user.id,
                 shopId: currentShop.id,
                 data: changes,
             })
 
             await ShopHistory.create({
                 action_type: "recheck",
-                userId: user.id,
+                userId: request.user.id,
                 shopId: currentShop.id,
             })
 
@@ -155,7 +119,7 @@ module.exports = async function (fastify, opts) {
             });
         } catch (err) {
             console.error(err);
-            return reply.status(500).send({ message: 'Ошибка при создании магазина.' });
+            return reply.status(500).send({ message: 'Ошибка при изменении магазина.' });
         }
     });
 };

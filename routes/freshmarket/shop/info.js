@@ -6,6 +6,7 @@ module.exports = async function (fastify, opts) {
         const Product = fastify.sequelize.model('Product');
         const Shop = fastify.sequelize.model('Shop');
         const User = fastify.sequelize.model('User');
+        const ShopCoOwner = fastify.sequelize.model('ShopCoOwner');
         const query = request.query;
 
         const shop = await Shop.findOne({
@@ -28,9 +29,23 @@ module.exports = async function (fastify, opts) {
                     model: User,
                     as: 'owner',
                     attributes: ["id", "nickname", "uuid"]
+                },
+                {
+                    model: ShopCoOwner,
+                    as: 'co_owners',
+                    attributes: ["id", "status", "userId"],
+                    include: {
+                        model: User,
+                        as: 'user',
+                        attributes: ["id", "nickname", "uuid"]
+                    },
                 }
             ]
         })
+
+        if (!shop) {
+            return reply.status(400).send({ message: "Магазин не найден!" });
+        }
 
         return reply.status(200).send(shop);
     })

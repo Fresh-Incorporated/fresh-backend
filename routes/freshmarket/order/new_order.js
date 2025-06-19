@@ -4,34 +4,8 @@ const {Op} = require("sequelize");
 const {SPWorlds} = require("spworlds");
 const {notifyWorkers} = require("../../../utils/notifyUtil");
 module.exports = async function (fastify, opts) {
-    fastify.addHook('onRequest', async (request, reply) => {
-        const User = fastify.sequelize.model('User');
-        try {
-            const accessToken = request.cookies.access_token
-            if (!accessToken) {
-                return reply.status(401).send({error: 'Missing access token'})
-            }
-
-            request.user = fastify.jwt.verify(accessToken)
-
-            request.user = await User.findOne({
-                where: {
-                    id: request.user.id
-                },
-                attributes: ['id', 'balance'],
-            });
-
-            if (!request.user) {
-                return reply.status(400).send({
-                    message: "Пользователь не найден."
-                });
-            }
-        } catch (err) {
-            reply.status(401).send({error: 'Unauthorized'})
-        }
-    })
-
     fastify.post('/new/instant', {
+        preHandler: [fastify.requireAuth],
         config: {
             rateLimit: {
                 timeWindow: '5 minute',
