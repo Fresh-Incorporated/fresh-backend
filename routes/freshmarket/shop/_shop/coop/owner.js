@@ -70,14 +70,17 @@ module.exports = async function (fastify, opts) {
     fastify.post('/delete', { preHandler: fastify.requireShopAccess }, async function (request, reply) {
         const { ShopCoOwner, User } = fastify.sequelize.models;
 
-        if (!request.isOwner) return reply.status(400).send({
-            message: "Магазин не существует или у вас недостаточно прав."
-        });
-
         const { id } = request.body
         if (!id) {
             return reply.status(400).send({ message: 'Укажите пользователя' });
         }
+
+        if (!request.isOwner && request.user.id !== id) {
+            return reply.status(400).send({
+                message: "Магазин не существует или у вас недостаточно прав."
+            });
+        }
+
 
         const user = await User.findOne({
             where: { id },
