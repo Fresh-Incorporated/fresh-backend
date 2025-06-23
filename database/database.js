@@ -68,13 +68,15 @@ async function setupDatabase(fastify) {
     ProductModel.belongsToMany(Tag, {
         through: 'product_tags',
         foreignKey: 'product_id',
-        otherKey: 'tag_id'
+        otherKey: 'tag_id',
+        as: 'tags'
     });
 
     Tag.belongsToMany(ProductModel, {
         through: 'product_tags',
         foreignKey: 'tag_id',
-        otherKey: 'product_id'
+        otherKey: 'product_id',
+        as: 'products'
     });
 
     fastify.sequelize.sync({force: false, alter: false})
