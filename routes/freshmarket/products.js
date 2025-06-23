@@ -5,6 +5,7 @@ module.exports = async function (fastify, opts) {
     fastify.get('/products', async function (request, reply) {
         const Product = fastify.sequelize.model('Product');
         const Shop = fastify.sequelize.model('Shop');
+        const Tag = fastify.sequelize.model('Tag');
         const query = request.query;
 
         const offset = request.query.offset || 0;
@@ -21,7 +22,7 @@ module.exports = async function (fastify, opts) {
                 enabled: true,
                 cellId: { [Op.not]: null }
             },
-            include: {
+            include: [{
                 model: Shop,
                 as: 'shop',
                 attributes: ["id", "name", "icon", "tag"],
@@ -29,7 +30,11 @@ module.exports = async function (fastify, opts) {
                     verify_status: 1,
                     enabled: true
                 },
-            },
+            },{
+                model: Tag,
+                as: 'tags',
+                through: { attributes: [] }
+            }],
             order: [],
             attributes: ['id', 'name', 'description', 'icon', 'stack_count', 'slots_count', 'price', 'count', 'shopId'],
         }
