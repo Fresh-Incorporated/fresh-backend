@@ -13,6 +13,7 @@ module.exports = async function (fastify, opts) {
         const Location = fastify.sequelize.model('Location');
         const LocationCell = fastify.sequelize.model('LocationCell');
         const ProductHistory = fastify.sequelize.model('ProductHistory');
+        const Tag = fastify.sequelize.model('Tag');
 
         if (request.query.name.length < 3 || request.query.name.length > 24) {
             return reply.status(400).send({
@@ -44,6 +45,24 @@ module.exports = async function (fastify, opts) {
             });
         }
 
+        let tags = []
+
+        if (request.query.tags && request.query.tags.split("_").length > 3) {
+            return reply.status(400).send({
+                message: "Количество тегов должно быть не более 3х."
+            });
+        } else {
+            tags = await Tag.findAll({
+                where: {
+                    id: request.query.tags.split("_")
+                }
+            });
+            if (tags.length !== request.query.tags.split("_").length) {
+                return reply.status(400).send({
+                    message: "Некоторые теги не найдены. (Ты че, хакер?)"
+                });
+            }
+        }
 
         const products_count = await Product.count({ where: {shopId: request.shop.id }});
 
@@ -112,6 +131,10 @@ module.exports = async function (fastify, opts) {
                 icon: fileUrl,
                 cellId: cell?.id
             });
+
+            if (tags.length > 0) {
+                await newProduct.addTags(tags.map(tag => tag.id));
+            }
 
             await ProductHistory.create({
                 action_type: "created",
