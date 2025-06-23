@@ -7,6 +7,7 @@ module.exports = async function (fastify, opts) {
 
         const Product = fastify.sequelize.model('Product');
         const ProductHistory = fastify.sequelize.model('ProductHistory');
+        const Tag = fastify.sequelize.model('Tag');
 
         if (!request.isOwner) return reply.status(400).send({
             message: "Магазин не существует или у вас недостаточно прав."
@@ -40,6 +41,25 @@ module.exports = async function (fastify, opts) {
             return reply.status(400).send({
                 message: "Цена товара должна быть от 0.01 до 1728."
             });
+        }
+
+        let tags = null
+
+        if (request.query.tags && request.query.tags.split("_").length > 3) {
+            return reply.status(400).send({
+                message: "Количество тегов должно быть не более 3х."
+            });
+        } else {
+            tags = await Tag.findAll({
+                where: {
+                    id: request.query.tags.split("_")
+                }
+            });
+            if (tags.length !== request.query.tags.split("_").length) {
+                return reply.status(400).send({
+                    message: "Некоторые теги не найдены. (Ты че, хакер?)"
+                });
+            }
         }
 
         let fileUrl = process.env.DEFAULT_SHOP_ICON;
@@ -86,6 +106,9 @@ module.exports = async function (fastify, opts) {
                 if (Object.keys(changes).length <= 2 && request.product.verify_status === 1) {
                     changes.verify_status = 1
                 }
+            }
+            if (tags && tags.length > 0) {
+                await request.product.setTags(tags.map(tag => tag.id));
             }
             await Product.update(changes, {
                 where: {
