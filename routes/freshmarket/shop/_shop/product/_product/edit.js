@@ -36,9 +36,9 @@ module.exports = async function (fastify, opts) {
             });
         }
 
-        if (request.query.price && (parseInt(request.query.price) < 1 || parseInt(request.query.price) > 1728)) {
+        if (request.query.price && (parseFloat(request.query.price).toFixed(2) < 0.01 || parseFloat(request.query.price).toFixed(2) > 1728)) {
             return reply.status(400).send({
-                message: "Цена товара должна быть от 1 до 1728."
+                message: "Цена товара должна быть от 0.01 до 1728."
             });
         }
 
@@ -81,8 +81,8 @@ module.exports = async function (fastify, opts) {
             if (fileUrl !== process.env.DEFAULT_SHOP_ICON) {
                 changes.icon = fileUrl;
             }
-            if (request.query.price && request.product.price !== request.query.price) {
-                changes.price = request.query.price;
+            if (request.query.price && parseFloat(request.product.price).toFixed(2) !== parseFloat(request.query.price).toFixed(2)) {
+                changes.price = parseFloat(request.query.price).toFixed(2);
                 if (Object.keys(changes).length <= 2 && request.product.verify_status === 1) {
                     changes.verify_status = 1
                 }

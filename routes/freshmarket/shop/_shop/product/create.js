@@ -38,9 +38,9 @@ module.exports = async function (fastify, opts) {
             });
         }
 
-        if (parseInt(request.query.price) < 1 || parseInt(request.query.price) > 1728) {
+        if (parseFloat(request.query.price).toFixed(2) < 0.01 || parseFloat(request.query.price).toFixed(2) > 1728) {
             return reply.status(400).send({
-                message: "Кол-во слотов еденицы товара должно быть в пределах 1-1728."
+                message: "Цена товара должна быть в пределах 0.01-1728."
             });
         }
 
@@ -108,7 +108,7 @@ module.exports = async function (fastify, opts) {
                 description: request.query.description,
                 stack_count: request.query.stack_count,
                 slots_count: request.query.slots_count,
-                price: request.query.price,
+                price: parseFloat(request.query.price).toFixed(2),
                 icon: fileUrl,
                 cellId: cell?.id
             });
