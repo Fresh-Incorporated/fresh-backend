@@ -147,6 +147,7 @@ module.exports = async function (fastify, opts) {
                     slots_count: newProduct.slots_count,
                     price: newProduct.price,
                     icon: newProduct.icon,
+                    tags: tags.map(tag => tag.name)
                 },
             })
 

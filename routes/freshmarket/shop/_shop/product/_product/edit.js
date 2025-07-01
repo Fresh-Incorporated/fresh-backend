@@ -108,6 +108,7 @@ module.exports = async function (fastify, opts) {
                 }
             }
             if (tags && tags.length > 0) {
+                changes.tags = tags.map(tag => tag.name)
                 await request.product.setTags(tags.map(tag => tag.id));
             }
             await Product.update(changes, {
