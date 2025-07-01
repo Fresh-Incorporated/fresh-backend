@@ -14,6 +14,7 @@ async function setupDatabase(fastify) {
     const Salary = await require('./models/Salary')(fastify);
     const UserWebpush = await require('./models/UserWebpush')(fastify);
     const ShopCoOwner = await require('./models/ShopCoOwner')(fastify);
+    const Tag = await require('./models/Tag')(fastify);
 
     UserModel.hasMany(ShopModel, {foreignKey: 'ownerId'});
     ShopModel.belongsTo(UserModel, {foreignKey: 'ownerId', as: 'owner'});
@@ -64,8 +65,34 @@ async function setupDatabase(fastify) {
     UserModel.hasMany(ShopCoOwner, { foreignKey: 'userId', as: 'co_owns' });
     ShopCoOwner.belongsTo(UserModel, { foreignKey: 'userId', as: 'user' });
 
+    ProductModel.belongsToMany(Tag, {
+        through: 'product_tags',
+        foreignKey: 'product_id',
+        otherKey: 'tag_id',
+        as: 'tags'
+    });
+
+    Tag.belongsToMany(ProductModel, {
+        through: 'product_tags',
+        foreignKey: 'tag_id',
+        otherKey: 'product_id',
+        as: 'products'
+    });
+
     fastify.sequelize.sync({force: false, alter: false})
         .then(async () => {
+            const TagModel = await fastify.sequelize.model("Tag");
+            const tagsCount = await TagModel.count()
+            if (tagsCount === 0) {
+                await TagModel.create({ name: "18+" })
+                await TagModel.create({ name: "Броня" })
+                await TagModel.create({ name: "Инструменты" })
+                await TagModel.create({ name: "Оружие" })
+                await TagModel.create({ name: "Блоки" })
+                await TagModel.create({ name: "Еда" })
+                await TagModel.create({ name: "Арты" })
+                await TagModel.create({ name: "Прочее" })
+            }
             console.log("Database synchronized successfully")
         })
         .catch(err => console.error("Error synchronizing database:", err));

@@ -133,6 +133,7 @@ module.exports = async function (fastify, opts) {
         const Location = fastify.sequelize.model('Location');
         const LocationCell = fastify.sequelize.model('LocationCell');
         const ProductHistory = fastify.sequelize.model('ProductHistory');
+        const Tag = fastify.sequelize.model('Tag');
 
         const products = await Product.findAll({
             where: {
@@ -166,6 +167,11 @@ module.exports = async function (fastify, opts) {
                         }
                     ]
                 },
+                {
+                    model: Tag,
+                    as: 'tags',
+                    through: { attributes: [] }
+                }
             ]
         });
 
