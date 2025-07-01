@@ -50,6 +50,24 @@ module.exports = async function (fastify, opts) {
             }
         }
 
+        if (query.tags !== undefined) {
+            const tagIds = query.tags
+                .split('_')
+                .map(id => parseInt(id))
+                .filter(id => !isNaN(id));
+
+            if (tagIds.length > 0) {
+                const tagIdList = tagIds.join(',');
+
+                defaultQuery.where[Op.and].push(
+                    fastify.sequelize.literal(`EXISTS (
+                SELECT 1 FROM product_tags pt
+                WHERE pt.product_id = "Product".id AND pt.tag_id IN (${tagIdList})
+            )`)
+                );
+            }
+        }
+
         if (query.search !== undefined) {
             defaultQuery.where[Op.and].push({
                 [Op.or]: [
