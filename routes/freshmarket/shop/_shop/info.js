@@ -23,7 +23,8 @@ module.exports = async function (fastify, opts) {
                         as: 'tags',
                         through: { attributes: [] }
                     }
-                ]
+                ],
+                order: [['id', 'ASC']]
             },{
                 model: ShopCoOwner,
                 as: 'co_owners',
