@@ -53,6 +53,7 @@ async function setupDatabase(fastify) {
 
     ShopModel.hasMany(ShopHistoryModel, {foreignKey: 'shopId', as: 'history'});
     ShopHistoryModel.belongsTo(ShopModel, {foreignKey: 'shopId', as: 'history'});
+    ShopHistoryModel.belongsTo(UserModel, {foreignKey: 'userId', as: 'user'});
 
     UserModel.hasMany(BalanceHistoryModel, {foreignKey: 'userId', as: 'balanceHistory'});
     BalanceHistoryModel.belongsTo(UserModel, {foreignKey: 'userId', as: 'balanceHistory'});

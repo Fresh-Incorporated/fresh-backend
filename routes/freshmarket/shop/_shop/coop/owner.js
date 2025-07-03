@@ -62,7 +62,7 @@ module.exports = async function (fastify, opts) {
             delete_products: !!permissions.delete_products
         });
 
-        notifyUser(fastify, request.shop.ownerId, "fm_invited_shop_" + request.shop.id, "Приглашение в магазин", "Вас пригласили в магазин " + request.shop.name, "/cabinet/freshmarket/invites")
+        notifyUser(fastify, invitedUser.id, "fm_invited_shop_" + request.shop.id, "Приглашение в магазин", "Вас пригласили в магазин " + request.shop.name, "/cabinet/freshmarket/invites")
 
         return reply.send({ message: 'Приглашение отправлено' });
     });
