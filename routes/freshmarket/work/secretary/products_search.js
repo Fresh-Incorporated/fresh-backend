@@ -40,6 +40,7 @@ module.exports = async function (fastify, opts) {
         const Shop = fastify.sequelize.model('Shop');
         const Product = fastify.sequelize.model('Product');
         const LocationCell = fastify.sequelize.model('LocationCell');
+        const Tag = fastify.sequelize.model('Tag');
 
         const where = {};
         const cellWhere = {};
@@ -69,6 +70,11 @@ module.exports = async function (fastify, opts) {
                     as: "cell",
                     attributes: ["id", "letter", "number"],
                     where: cellWhere
+                },
+                {
+                    model: Tag,
+                    as: 'tags',
+                    through: { attributes: [] }
                 }
             ],
             limit: request.query.limit ? (request.query?.limit < 1 || request.query?.limit > 50 ? 5 : request.query?.limit) : 5,
