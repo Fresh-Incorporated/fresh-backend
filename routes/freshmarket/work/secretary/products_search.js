@@ -42,6 +42,7 @@ module.exports = async function (fastify, opts) {
         const LocationCell = fastify.sequelize.model('LocationCell');
 
         const where = {};
+        const cellWhere = {};
 
         if (request.query.id !== undefined && request.query.id !== null) {
             where.id = request.query.id;
@@ -49,6 +50,11 @@ module.exports = async function (fastify, opts) {
 
         if (request.query.name !== undefined && request.query.name !== null) {
             where.name = { [Op.iLike]: `%${request.query.name}%` };
+        }
+
+        if (request.query.cell !== undefined && request.query.cell !== null) {
+            cellWhere.letter = request.query.cell.split('-')[0]
+            cellWhere.number = request.query.cell.split('-')[1]
         }
 
         const products = await Product.findAll({
@@ -61,7 +67,8 @@ module.exports = async function (fastify, opts) {
                 {
                     model: LocationCell,
                     as: "cell",
-                    attributes: ["id", "letter", "number"]
+                    attributes: ["id", "letter", "number"],
+                    where: cellWhere
                 }
             ],
             limit: request.query.limit ? (request.query?.limit < 1 || request.query?.limit > 50 ? 5 : request.query?.limit) : 5,
