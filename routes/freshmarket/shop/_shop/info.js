@@ -7,13 +7,24 @@ const fns = require('date-fns'); // { format, subDays, isSameDay, parseISO }
 module.exports = async function (fastify, opts) {
 
     fastify.get('/', { preHandler: fastify.requireShopAccess }, async function (request, reply) {
-        const { Product, User, LocationCell, ShopCoOwner } = fastify.sequelize.models;
+        const { Product, User, LocationCell, ShopCoOwner, Tag } = fastify.sequelize.models;
 
         const shop = await request.shop.reload({
             include: [{
                 model: Product,
                 as: 'products',
-                include: [{ model: LocationCell, as: 'refillCell' }]
+                include: [
+                    {
+                        model: LocationCell,
+                        as: 'refillCell'
+                    },
+                    {
+                        model: Tag,
+                        as: 'tags',
+                        through: { attributes: [] }
+                    }
+                ],
+                order: [['id', 'ASC']]
             },{
                 model: ShopCoOwner,
                 as: 'co_owners',

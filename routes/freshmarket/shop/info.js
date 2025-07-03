@@ -7,6 +7,7 @@ module.exports = async function (fastify, opts) {
         const Shop = fastify.sequelize.model('Shop');
         const User = fastify.sequelize.model('User');
         const ShopCoOwner = fastify.sequelize.model('ShopCoOwner');
+        const Tag = fastify.sequelize.model('Tag');
         const query = request.query;
 
         const shop = await Shop.findOne({
@@ -23,6 +24,11 @@ module.exports = async function (fastify, opts) {
                         verify_status: 1,
                         enabled: true
                     },
+                    include: [{
+                        model: Tag,
+                        as: 'tags',
+                        through: { attributes: [] }
+                    }],
                     attributes: ["id", "name", "description", "icon", "stack_count", "slots_count", "price", "count"],
                 },
                 {

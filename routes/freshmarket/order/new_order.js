@@ -97,23 +97,28 @@ module.exports = async function (fastify, opts) {
                 if (!pong) {
                     return reply.status(500).send({message: 'SPWorlds API не доступен. Попробуйте позже.'});
                 }
-                const items = []
-                for (const product of products) {
-                    const productRow = productRows.find(row => row.id === product.id);
-                    const item = {
-                        name: productRow.name.length > 32 ? productRow.name.slice(0, 29) + '...' : productRow.name,
-                        count: product.count,
-                        price: productRow.price
-                    };
-
-                    if (productRow.description.length >= 3) {
-                        item.comment = productRow.description.length > 64
-                            ? productRow.description.slice(0, 61) + '...'
-                            : productRow.description;
-                    }
-
-                    items.push(item);
-                }
+                const items = [{
+                    name: "Оплата заказа FreshMarket",
+                    comment: "Остаток от пополнения будет переведён на баланс Fresh Inc.",
+                    count: 1,
+                    price: Math.ceil(totalPrice)
+                }]
+                // for (const product of products) {
+                //     const productRow = productRows.find(row => row.id === product.id);
+                //     const item = {
+                //         name: productRow.name.length > 32 ? productRow.name.slice(0, 29) + '...' : productRow.name,
+                //         count: product.count,
+                //         price: productRow.price
+                //     };
+                //
+                //     if (productRow.description.length >= 3) {
+                //         item.comment = productRow.description.length > 64
+                //             ? productRow.description.slice(0, 61) + '...'
+                //             : productRow.description;
+                //     }
+                //
+                //     items.push(item);
+                // }
                 const payment = await spwApi.initPayment({
                     items,
                     redirectUrl: process.env.FRONTEND_URL + "/bank/payment/spworlds/completed",

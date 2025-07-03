@@ -2,22 +2,56 @@
 
 const {uploadToS3} = require("../../../../../../utils/s3Util");
 module.exports = async function (fastify, opts) {
-    fastify.post('/edit', { preHandler: fastify.requireProductAccess }, async function (request, reply) {
-        request.assertShopPermission('edit_products')
+    fastify.addHook('onRequest', async (request, reply) => {
+        const Product = fastify.sequelize.model('Product');
+        const User = fastify.sequelize.model('User');
+        try {
+            const accessToken = request.cookies.access_token;
+            if (!accessToken) {
+                return reply.status(401).send({ error: 'Missing access token' });
+            }
 
+            request.user = fastify.jwt.verify(accessToken);
+
+            request.user = await User.findOne({
+                where: {
+                    id: request.user.id
+                },
+                attributes: { exclude: ['updatedAt'] },
+            });
+
+            if (!request.user) {
+                return reply.status(400).send({
+                    message: "Пользователь не найден."
+                });
+            }
+
+            if (request.user.fm_worker < 3) {
+                return reply.status(403).send({
+                    message: "Недостаточно прав."
+                });
+            }
+
+            const product = await Product.findOne({
+                where: { id: request.params.product }
+            });
+
+            if (!product) {
+                return reply.status(400).send({
+                    message: "Товар не найден"
+                });
+            }
+
+            request.product = product
+        } catch (err) {
+            reply.status(401).send({ error: 'Unauthorized' });
+        }
+    });
+
+    fastify.post('/edit', async function (request, reply) {
         const Product = fastify.sequelize.model('Product');
         const ProductHistory = fastify.sequelize.model('ProductHistory');
         const Tag = fastify.sequelize.model('Tag');
-
-        if (!request.isOwner) return reply.status(400).send({
-            message: "Магазин не существует или у вас недостаточно прав."
-        });
-
-        if (request.product.verify_status === 0) {
-            return reply.status(400).send({
-                message: "Товар ещё не успел пройти прошлую проверку! Дождитесь её завершения и попробуйте снова. "
-            });
-        }
 
         if (request.product.refill_status !== 0) {
             return reply.status(400).send({
@@ -28,6 +62,12 @@ module.exports = async function (fastify, opts) {
         if (request.query.name && (request.query.name.length < 3 || request.query.name.length > 24)) {
             return reply.status(400).send({
                 message: "Длина названия должна быть в пределах 3-24 символов."
+            });
+        }
+
+        if (request.query.count && (parseInt(request.query.count) < 1 || parseInt(request.query.count) > 10000)) {
+            return reply.status(400).send({
+                message: "Кол-во товара должно быть в пределах 1-10000 шт."
             });
         }
 
@@ -91,12 +131,13 @@ module.exports = async function (fastify, opts) {
         }
 
         try {
-            const changes = {
-                verify_status: 0
-            }
+            const changes = {}
             let tagsChanged = false
             if (request.query.name && request.product.name !== request.query.name) {
                 changes.name = request.query.name;
+            }
+            if (request.query.count && request.product.count !== request.query.count) {
+                changes.count = request.query.count;
             }
             if (request.query.description && request.product.description !== request.query.description) {
                 changes.description = request.query.description;
@@ -110,9 +151,6 @@ module.exports = async function (fastify, opts) {
             }
             if (request.query.price && parseFloat(request.product.price).toFixed(2) !== parseFloat(request.query.price).toFixed(2)) {
                 changes.price = parseFloat(request.query.price).toFixed(2);
-                if (Object.keys(changes).length <= 2 && request.product.verify_status === 1 && !tagsChanged) {
-                    changes.verify_status = 1
-                }
             }
             await Product.update(changes, {
                 where: {
@@ -121,7 +159,7 @@ module.exports = async function (fastify, opts) {
             });
 
             const historyChanges = structuredClone(changes);
-            delete historyChanges.verify_status;
+
             if (tagsChanged) {
                 historyChanges.tags = tags.map(tag => tag.name)
             }
@@ -133,19 +171,8 @@ module.exports = async function (fastify, opts) {
                 data: historyChanges,
             })
 
-            if (changes.verify_status === 0) {
-                await ProductHistory.create({
-                    action_type: "recheck",
-                    userId: request.user.id,
-                    productId: request.product.id,
-                })
-                return reply.status(200).send({
-                    message: 'Товар успешно отправлен на проверку!'
-                });
-            }
-
             return reply.status(200).send({
-                message: 'Цена товара изменена без проверок!'
+                message: 'Товар изменён!'
             });
         } catch (err) {
             console.error(err);

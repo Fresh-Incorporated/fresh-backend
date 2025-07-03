@@ -26,7 +26,7 @@ module.exports = fp(async (fastify) => {
             headers['x-real-ip'] || headers['x-forwarded-for'] || '',
         ].join('|');
 
-        const fingerprint = crypto.createHash('sha256').update(relevantHeaders).digest('hex');;
+        const fingerprint = crypto.createHash('sha256').update(relevantHeaders).digest('hex');
 
         if (fingerprint) {
             userActivityMap.set(fingerprint, Date.now());

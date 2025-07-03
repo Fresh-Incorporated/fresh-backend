@@ -101,14 +101,14 @@ module.exports = async function (fastify, opts) {
             await ShopHistory.create({
                 action_type: "edited",
                 userId: request.user.id,
-                shopId: currentShop.id,
+                shopId: request.shop.id,
                 data: changes,
             })
 
             await ShopHistory.create({
                 action_type: "recheck",
                 userId: request.user.id,
-                shopId: currentShop.id,
+                shopId: request.shop.id,
             })
 
             notifyWorkers(fastify, 3, "fm_secretary_shop", "Новая проверка", "Проверьте магазин", "/cabinet/freshmarket/work/secretary/verify/shops")

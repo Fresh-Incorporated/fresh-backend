@@ -13,6 +13,7 @@ module.exports = async function (fastify, opts) {
         const Location = fastify.sequelize.model('Location');
         const LocationCell = fastify.sequelize.model('LocationCell');
         const ProductHistory = fastify.sequelize.model('ProductHistory');
+        const Tag = fastify.sequelize.model('Tag');
 
         if (request.query.name.length < 3 || request.query.name.length > 24) {
             return reply.status(400).send({
@@ -38,12 +39,30 @@ module.exports = async function (fastify, opts) {
             });
         }
 
-        if (parseInt(request.query.price) < 1 || parseInt(request.query.price) > 1728) {
+        if (parseFloat(request.query.price).toFixed(2) < 0.01 || parseFloat(request.query.price).toFixed(2) > 1728) {
             return reply.status(400).send({
-                message: "Кол-во слотов еденицы товара должно быть в пределах 1-1728."
+                message: "Цена товара должна быть в пределах 0.01-1728."
             });
         }
 
+        let tags = []
+
+        if (request.query.tags && request.query.tags.split("_").length > 3) {
+            return reply.status(400).send({
+                message: "Количество тегов должно быть не более 3х."
+            });
+        } else {
+            tags = await Tag.findAll({
+                where: {
+                    id: request.query.tags.split("_")
+                }
+            });
+            if (tags.length !== request.query.tags.split("_").length) {
+                return reply.status(400).send({
+                    message: "Некоторые теги не найдены. (Ты че, хакер?)"
+                });
+            }
+        }
 
         const products_count = await Product.count({ where: {shopId: request.shop.id }});
 
@@ -108,10 +127,14 @@ module.exports = async function (fastify, opts) {
                 description: request.query.description,
                 stack_count: request.query.stack_count,
                 slots_count: request.query.slots_count,
-                price: request.query.price,
+                price: parseFloat(request.query.price).toFixed(2),
                 icon: fileUrl,
                 cellId: cell?.id
             });
+
+            if (tags.length > 0) {
+                await newProduct.addTags(tags.map(tag => tag.id));
+            }
 
             await ProductHistory.create({
                 action_type: "created",
@@ -124,6 +147,7 @@ module.exports = async function (fastify, opts) {
                     slots_count: newProduct.slots_count,
                     price: newProduct.price,
                     icon: newProduct.icon,
+                    tags: tags.map(tag => tag.name)
                 },
             })
 
