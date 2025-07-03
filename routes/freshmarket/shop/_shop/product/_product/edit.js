@@ -9,10 +9,6 @@ module.exports = async function (fastify, opts) {
         const ProductHistory = fastify.sequelize.model('ProductHistory');
         const Tag = fastify.sequelize.model('Tag');
 
-        if (!request.isOwner) return reply.status(400).send({
-            message: "Магазин не существует или у вас недостаточно прав."
-        });
-
         if (request.product.verify_status === 0) {
             return reply.status(400).send({
                 message: "Товар ещё не успел пройти прошлую проверку! Дождитесь её завершения и попробуйте снова. "
