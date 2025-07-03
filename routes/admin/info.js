@@ -11,6 +11,7 @@ module.exports = async function (fastify, opts) {
         const Shop = fastify.sequelize.model('Shop');
         const Order = fastify.sequelize.model('Order');
         const Location = fastify.sequelize.model('Location');
+        const BalanceHistory = fastify.sequelize.model('BalanceHistory');
 
         // Кол-во пользователей
         const totalUsers = await User.count();
@@ -37,6 +38,12 @@ module.exports = async function (fastify, opts) {
             const cost = count * 16 + (count * (count - 1)) * 64 / 2;
             totalSpentOnShops += cost;
         }
+
+        let totalSpentOnShopAdditionalSlots = -(await BalanceHistory.sum("value", {
+            where: {
+                action_type: "freshmarket_pay"
+            }
+        })) - totalSpentOnShops;
 
         // Регистрации за последние 90 дней
         const today = new Date();
@@ -137,6 +144,7 @@ module.exports = async function (fastify, opts) {
 
         return reply.status(200).send({
             totalSpentOnShops,
+            totalSpentOnShopAdditionalSlots,
             totalBalanceUsers,
             totalBalanceShops,
             totalUsers,

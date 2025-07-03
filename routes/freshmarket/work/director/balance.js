@@ -40,6 +40,7 @@ module.exports = async function (fastify, opts) {
         const Order = fastify.sequelize.model('Order');
         const OrderHistory = fastify.sequelize.model('OrderHistory');
         const ProductHistory = fastify.sequelize.model('ProductHistory');
+        const BalanceHistory = fastify.sequelize.model('BalanceHistory');
         const Shop = fastify.sequelize.model('Shop');
         const User = fastify.sequelize.model('User');
 
@@ -70,6 +71,12 @@ module.exports = async function (fastify, opts) {
             }
         }
 
-        return reply.status(200).send({totalCommissionBalance, totalSpentOnShops});
+        let totalSpentOnShopAdditionalSlots = -(await BalanceHistory.sum("value", {
+            where: {
+                action_type: "freshmarket_pay"
+            }
+        })) - totalSpentOnShops;
+
+        return reply.status(200).send({totalCommissionBalance, totalSpentOnShops, totalSpentOnShopAdditionalSlots});
     });
 };
