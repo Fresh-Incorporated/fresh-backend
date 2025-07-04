@@ -8,8 +8,8 @@ module.exports = async function (fastify, opts) {
         preHandler: [fastify.requireAuth],
         config: {
             rateLimit: {
-                timeWindow: '5 minute',
-                max: 5
+                timeWindow: '2 minute',
+                max: 15
             }
         }
     }, async function (request, reply) {
