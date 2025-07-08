@@ -80,7 +80,7 @@ async function setupDatabase(fastify) {
         as: 'products'
     });
 
-    fastify.sequelize.sync({force: false, alter: true})
+    fastify.sequelize.sync({force: false, alter: false})
         .then(async () => {
             const TagModel = await fastify.sequelize.model("Tag");
             const tagsCount = await TagModel.count()
