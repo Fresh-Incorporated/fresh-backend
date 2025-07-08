@@ -7,7 +7,7 @@ client.on('ready', async () => {
     console.log(`Logged in as ${client.user.tag}!`);
     client.fastify.discord_bot = client
 
-    const guild = await client.guilds.fetch(process.env.DISCORD_BOT_GUILD);
+    const guild = await client.guilds.fetch(process.env.DISCORD_GUILD);
     client.guild = guild;
 
     await refreshDiscordSellers(client)
