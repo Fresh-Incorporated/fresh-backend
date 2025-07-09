@@ -2,6 +2,13 @@ import { Table, Column, Model, PrimaryKey, AutoIncrement, DataType, Default, All
 import { Shop } from './Shop';
 import { User } from './User';
 
+export type PermissionKey =
+    | 'edit_shop_info'
+    | 'create_products'
+    | 'edit_products'
+    | 'refill_products'
+    | 'delete_products';
+
 @Table({ tableName: 'shop_co_owners', paranoid: true, updatedAt: false })
 export class ShopCoOwner extends Model<ShopCoOwner> {
   @PrimaryKey

@@ -3,7 +3,7 @@ import { FastifyPluginAsync } from 'fastify'
 import { JwtPayload } from 'jsonwebtoken'
 import {User} from "../../models/User";
 import {Shop} from "../../models/Shop";
-import {ShopCoOwner} from "../../models/ShopCoOwner";
+import {PermissionKey, ShopCoOwner} from "../../models/ShopCoOwner";
 import {Product} from "../../models/Product";
 
 const accessControlPlugin: FastifyPluginAsync = async (fastify) => {
@@ -65,13 +65,13 @@ const accessControlPlugin: FastifyPluginAsync = async (fastify) => {
 
     fastify.decorateRequest('hasShopPermission', function (permission: string): boolean {
         if (this.isOwner) return true
-        if (this.coOwner && this.coOwner[permission]) return true
+        if (this.coOwner && this.coOwner[permission as PermissionKey]) return true
         return false
     })
 
     fastify.decorateRequest('assertShopPermission', function (permission: string): void {
         if (this.isOwner) return
-        if (this.coOwner && this.coOwner[permission]) return
+        if (this.coOwner && this.coOwner[permission as PermissionKey]) return
 
         throw fastify.httpErrors.forbidden('Недостаточно прав')
     })

@@ -17,12 +17,13 @@ const app: FastifyPluginAsync<AppOptions> = async (
 
   void fastify.register(AutoLoad, {
     dir: join(__dirname, 'plugins'),
-    options: opts
+    options: Object.assign({}, opts)
   })
 
   void fastify.register(AutoLoad, {
     dir: join(__dirname, 'routes'),
-    options: opts
+    routeParams: true,
+    options: Object.assign({}, opts)
   })
 
   fastify.setErrorHandler(function (error, request, reply) {

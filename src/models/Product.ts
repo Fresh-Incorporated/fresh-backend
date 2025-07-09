@@ -5,6 +5,8 @@ import { Shop } from './Shop';
 import { ProductHistory } from './ProductHistory';
 import { Tag } from './Tag';
 import { ProductTag } from './ProductTag';
+import {LocationCell} from "./LocationCell";
+import {User} from "./User";
 
 @Table({ tableName: 'products', paranoid: true, timestamps: true })
 export class Product extends Model<Product> {
@@ -64,6 +66,30 @@ export class Product extends Model<Product> {
 
   @BelongsTo(() => Shop, 'shopId')
   declare shop: Shop;
+
+  @ForeignKey(() => LocationCell)
+  @AllowNull(true)
+  @Column(DataType.BIGINT)
+  declare cellId: number | null;
+
+  @BelongsTo(() => LocationCell, 'cellId')
+  declare cell: LocationCell | null;
+
+  @ForeignKey(() => LocationCell)
+  @AllowNull(true)
+  @Column(DataType.BIGINT)
+  declare refillCellId: number | null;
+
+  @BelongsTo(() => LocationCell, 'refillCellId')
+  declare refillCell: LocationCell | null;
+
+  @ForeignKey(() => User)
+  @AllowNull(true)
+  @Column(DataType.BIGINT)
+  declare currentRefillerId: number | null;
+
+  @BelongsTo(() => User, 'currentRefillerId')
+  declare currentRefiller: User | null;
 
   @HasMany(() => ProductHistory, 'productId')
   declare history: ProductHistory[];

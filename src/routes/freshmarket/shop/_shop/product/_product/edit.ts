@@ -1,0 +1,121 @@
+import { FastifyPluginAsync } from 'fastify';
+import { Product } from '../../../../../../models/Product';
+import { ProductHistory } from '../../../../../../models/ProductHistory';
+import { Tag } from '../../../../../../models/Tag';
+import { uploadToS3 } from '../../../../../../utils/s3Util';
+
+const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
+  fastify.post<{ Querystring: {
+      name?: string;
+      description?: string;
+      price?: string;
+      tags?: string;
+    } }>('/edit', { preHandler: fastify.requireProductAccess }, async (request, reply) => {
+    request.assertShopPermission('edit_products');
+    const product = request.product;
+    if (!product) return reply.status(400).send({ message: 'Товар не найден.' });
+    const user = request.user;
+    if (!user) return reply.status(400).send({ message: 'Пользователь не найден.' });
+
+    if (product.verify_status === 0) {
+      return reply.status(400).send({ message: 'Товар ещё не успел пройти прошлую проверку! Дождитесь её завершения и попробуйте снова. ' });
+    }
+    if (product.refill_status !== 0) {
+      return reply.status(400).send({ message: 'Нельзя изменить товар который пополняется. ' });
+    }
+    if (request.query.name && (request.query.name.length < 3 || request.query.name.length > 24)) {
+      return reply.status(400).send({ message: 'Длина названия должна быть в пределах 3-24 символов.' });
+    }
+    if (request.query.description && (request.query.description.length > 240)) {
+      return reply.status(400).send({ message: 'Длина описания должна быть не более 240 символов.' });
+    }
+    if (request.query.price && (parseFloat(request.query.price) < 0.01 || parseFloat(request.query.price) > 1728)) {
+      return reply.status(400).send({ message: 'Цена товара должна быть от 0.01 до 1728.' });
+    }
+
+    let tags: Tag[] | null = null;
+    if (request.query.tags) {
+      if (request.query.tags.split('_').length > 3) {
+        return reply.status(400).send({ message: 'Количество тегов должно быть не более 3х.' });
+      } else {
+        tags = await Tag.findAll({ where: { id: request.query.tags.split('_') } });
+        if (tags.length !== request.query.tags.split('_').length) {
+          return reply.status(400).send({ message: 'Некоторые теги не найдены. (Ты че, хакер?)' });
+        }
+      }
+    }
+
+    let fileUrl = process.env.DEFAULT_SHOP_ICON;
+    try {
+      if (request.body && (request.body as any).icon) {
+        const buffer = await (request.body as any).icon.toBuffer();
+        const file = {
+          filename: (request.body as any).icon.filename,
+          mimetype: (request.body as any).icon.mimetype,
+          size: buffer.length,
+          buffer: buffer,
+        };
+        if (file.size > 2 * 1024 * 1024) {
+          return reply.status(400).send({ message: 'Иконка должна быть не более 2 МБ!' });
+        }
+        const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/svg+xml', 'image/webp'];
+        if (!allowedMimeTypes.includes(file.mimetype)) {
+          return reply.status(400).send({ message: 'Допускаются только изображения форматов JPEG, JPG, PNG, SVG или WEBP.' });
+        }
+        fileUrl = await uploadToS3(file, process.env.S3_BUCKET_NAME!, 'fresh/market/shop_icon', true);
+      }
+    } catch (err) {
+      console.warn('Файл не был загружен, используется иконка по умолчанию.');
+    }
+
+    try {
+      const changes: any = { verify_status: 0 };
+      let tagsChanged = false;
+      if (request.query.name && product.name !== request.query.name) {
+        changes.name = request.query.name;
+      }
+      if (request.query.description && product.description !== request.query.description) {
+        changes.description = request.query.description;
+      }
+      if (fileUrl !== process.env.DEFAULT_SHOP_ICON) {
+        changes.icon = fileUrl;
+      }
+      if (tags && tags.length > 0) {
+        await (product as any).setTags(tags.map(tag => tag.id));
+        tagsChanged = true;
+      }
+      if (request.query.price && product.price !== parseFloat(request.query.price)) {
+        changes.price = parseFloat(request.query.price).toFixed(2);
+        if (Object.keys(changes).length <= 2 && product.verify_status === 1 && !tagsChanged) {
+          changes.verify_status = 1;
+        }
+      }
+      await Product.update(changes, { where: { id: product.id } });
+      const historyChanges = { ...changes };
+      delete historyChanges.verify_status;
+      if (tagsChanged && tags) {
+        historyChanges.tags = tags.map(tag => tag.name);
+      }
+      await ProductHistory.create({
+        action_type: 'edited',
+        userId: user.id,
+        productId: product.id,
+        data: historyChanges,
+      } as any);
+      if (changes.verify_status === 0) {
+        await ProductHistory.create({
+          action_type: 'recheck',
+          userId: user.id,
+          productId: product.id,
+        } as any);
+        return reply.status(200).send({ message: 'Товар успешно отправлен на проверку!' });
+      }
+      return reply.status(200).send({ message: 'Цена товара изменена без проверок!' });
+    } catch (err) {
+      console.error(err);
+      return reply.status(500).send({ message: 'Ошибка при изменении товара.' });
+    }
+  });
+};
+
+export default route;

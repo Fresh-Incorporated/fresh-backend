@@ -2,6 +2,8 @@ import 'fastify';
 import { Sequelize } from 'sequelize';
 import { User } from "../src/models/User";
 import { Shop } from "../src/models/Shop";
+import {Product} from "../src/models/Product";
+import {ShopCoOwner} from "../src/models/ShopCoOwner";
 
 declare module 'fastify' {
     interface FastifyInstance {
@@ -12,12 +14,12 @@ declare module 'fastify' {
     }
 
     interface FastifyRequest {
-        user?: User
-        shop?: Shop
-        coOwner?: any
+        user: User
+        shop: Shop
+        product: Product
+        coOwner?: ShopCoOwner
         isOwner?: boolean
         isCoOwner?: boolean
-        product?: any
 
         hasShopPermission: (perm: string) => boolean
         assertShopPermission: (perm: string) => void
