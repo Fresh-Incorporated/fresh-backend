@@ -39,73 +39,82 @@
 }
  */
 
-const {Op} = require("sequelize");
+import { FastifyInstance } from 'fastify';
+import { Op } from 'sequelize';
+import {UserWebpush} from "../models/UserWebpush";
+import {User} from "../models/User";
 
-function buildNotification({ title, body, tag, url }) {
+interface NotificationPayload {
+    title: string;
+    body: string;
+    tag: string;
+    url: string;
+}
+
+function buildNotification({ title, body, tag, url }: NotificationPayload) {
     return {
         title,
         options: {
             body,
-            icon: "/logo.png",
-            badge: "/logo.png",
+            icon: '/logo.png',
+            badge: '/logo.png',
             vibrate: [200, 100, 200],
             timestamp: Date.now(),
-            lang: "ru-RU",
-            dir: "auto",
+            lang: 'ru-RU',
+            dir: 'auto',
             tag,
             data: {
                 url: `${process.env.FRONTEND_URL}${url}`,
-            }
-        }
+            },
+        },
     };
 }
 
-/**
- * Отправляет уведомление конкретному пользователю
- */
-async function notifyUser(fastify, userId, tag, title, body, url = "/") {
-    const UserWebpush = fastify.sequelize.model("UserWebpush");
-
-    const subscriptions = await UserWebpush.findAll({
+export async function notifyUser(
+    fastify: FastifyInstance,
+    userId: number,
+    tag: string,
+    title: string,
+    body: string,
+    url = '/'
+): Promise<void> {
+    const subscriptions: UserWebpush[] = await UserWebpush.findAll({
         where: {
-            userId: userId,
-            enabled: true
-        }
+            userId,
+            enabled: true,
+        },
     });
 
     const payload = JSON.stringify(buildNotification({ title, body, tag, url }));
 
-    await Promise.allSettled(
-        subscriptions.map(sub =>
-            fastify.webpush.sendNotification(sub.data, payload)
-        )
-    ).then(results => {
-        for (const result of results) {
-            if (result.status === "rejected") {
-                console.error("Push error:", result.reason);
-            }
+    const results = await Promise.allSettled(
+        subscriptions.map((sub) => fastify.webpush.sendNotification(sub.data, payload))
+    );
+
+    for (const result of results) {
+        if (result.status === 'rejected') {
+            console.error('Push error:', result.reason);
         }
-    });
+    }
 }
 
-// 0 < fm_worker < 5 (delivery - 1, logic - 2, secretary - 3, director - 4)
-async function notifyWorkers(fastify, minFmWorker, tag, title, body, url = "/") {
-    const User = fastify.sequelize.model("User");
-
-    const users = await User.findAll({
+export async function notifyWorkers(
+    fastify: FastifyInstance,
+    minFmWorker: number,
+    tag: string,
+    title: string,
+    body: string,
+    url = '/'
+): Promise<void> {
+    const users: { id: number; fm_worker: number }[] = await User.findAll({
         where: {
             fm_worker: {
-                [Op.gte]: minFmWorker
-            }
-        }
+                [Op.gte]: minFmWorker,
+            },
+        },
     });
 
     for (const user of users) {
         await notifyUser(fastify, user.id, tag, title, body, url);
     }
 }
-
-module.exports = {
-    notifyUser,
-    notifyWorkers
-};

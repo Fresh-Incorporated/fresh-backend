@@ -1,7 +1,8 @@
 import { Table, Column, Model, PrimaryKey, AutoIncrement, DataType, Default, AllowNull, BelongsTo, ForeignKey } from 'sequelize-typescript';
 import { User } from './User';
+import * as webPush from "web-push";
 
-@Table({ tableName: 'user_webpushs', timestamps: true, updatedAt: false })
+@Table({tableName: 'user_webpushs', timestamps: true, updatedAt: false})
 export class UserWebpush extends Model<UserWebpush> {
   @PrimaryKey
   @AutoIncrement
@@ -10,7 +11,7 @@ export class UserWebpush extends Model<UserWebpush> {
 
   @AllowNull(false)
   @Column(DataType.JSONB)
-  declare data: object;
+  declare data: webPush.PushSubscription;
 
   @Default(true)
   @Column(DataType.BOOLEAN)

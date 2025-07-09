@@ -1,17 +1,23 @@
-const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
-const fs = require('fs');
-const path = require('path');
-const { randomUUID } = require('crypto');
-const sharp = require('sharp'); // Подключение библиотеки sharp
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import fs from 'fs';
+import path from 'path';
+import { randomUUID } from 'crypto';
+import sharp from 'sharp';
 
-// Инициализация S3 клиента
+interface FileUpload {
+    filename: string;
+    mimetype: string;
+    size: number;
+    buffer: Buffer;
+}
+
 const s3Client = new S3Client({
-    region: process.env.S3_REGION,
-    endpoint: process.env.S3_ENDPOINT,
+    region: process.env.S3_REGION!,
+    endpoint: process.env.S3_ENDPOINT!,
     forcePathStyle: true,
     credentials: {
-        accessKeyId: process.env.S3_ACCESS_KEY,
-        secretAccessKey: process.env.S3_SECRET_KEY,
+        accessKeyId: process.env.S3_ACCESS_KEY!,
+        secretAccessKey: process.env.S3_SECRET_KEY!,
     },
 });
 
@@ -23,22 +29,22 @@ const s3Client = new S3Client({
  * @param {Boolean} toWebp - Флаг преобразования в WebP
  * @returns {String} - URL загруженного файла
  */
-async function uploadToS3(file, bucketName, customPath = '', toWebp = false) {
+export async function uploadToS3(
+    file: FileUpload,
+    bucketName: string,
+    customPath: string = '',
+    toWebp: boolean = false
+): Promise<string> {
     const uniqueFileName = `${randomUUID()}-${Date.now()}`;
     const s3Root = process.env.S3_ROOT || '';
-
-    // Указанный путь должен начинаться с S3_ROOT (Для директорий с проектами)
     let fullPath = path.posix.join(s3Root, customPath, uniqueFileName);
-
-    // Временное сохранение файла
     const tempPath = path.join(__dirname, '../uploads', uniqueFileName);
 
-    // Обработка файла с преобразованием в WebP, если это указано
     if (toWebp) {
         try {
             const webpBuffer = await sharp(file.buffer).webp({ quality: 80 }).toBuffer();
             await fs.promises.writeFile(tempPath, webpBuffer);
-            fullPath += '.webp'; // Добавляем расширение WebP к файлу
+            fullPath += '.webp';
         } catch (error) {
             console.error('Ошибка преобразования изображения в WebP:', error);
             throw new Error('Не удалось преобразовать изображение в WebP.');
@@ -48,7 +54,6 @@ async function uploadToS3(file, bucketName, customPath = '', toWebp = false) {
     }
 
     try {
-        // Загрузка файла в S3
         const command = new PutObjectCommand({
             Bucket: bucketName,
             Key: fullPath,
@@ -58,16 +63,11 @@ async function uploadToS3(file, bucketName, customPath = '', toWebp = false) {
         });
 
         await s3Client.send(command);
-
-        // Удаление временного файла
         await fs.promises.unlink(tempPath);
 
-        // Возвращаем URL файла
         return `${process.env.S3_SHORT_ENDPOINT}/${fullPath}`;
     } catch (error) {
         console.error('Ошибка загрузки файла в S3:', error);
         throw new Error('Не удалось загрузить файл в S3.');
     }
 }
-
-module.exports = { uploadToS3 };
