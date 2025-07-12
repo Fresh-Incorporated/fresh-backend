@@ -44,7 +44,7 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
       refill_products: !!permissions.refill_products,
       delete_products: !!permissions.delete_products,
     } as any);
-    await notifyUser(fastify, invitedUser.id, `fm_invited_shop_${shop.id}`, 'Приглашение в магазин', `Вас пригласили в магазин ${shop.name}`, '/cabinet/freshmarket/invites');
+    notifyUser(fastify, invitedUser.id, 'Приглашение в магазин', `Вас пригласили в магазин ${shop.name}`, '/cabinet/freshmarket/invites', 'priority');
     return reply.send({ message: 'Приглашение отправлено' });
   });
 
@@ -68,7 +68,7 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
       return reply.status(400).send({ message: 'Этот пользователь не совладелец' });
     }
     await existingCoOwner.destroy();
-    await notifyUser(fastify, targetUser.id, `fm_removed_from_shop_${targetUser.id}`, 'Удаление из магазина', `Вас больше не совладелец магазина ${shop.name}`, '/cabinet');
+    await notifyUser(fastify, targetUser.id, 'Удаление из магазина', `Вы больше не совладелец магазина ${shop.name}`, '/cabinet', 'priority');
     return reply.send({ message: 'Пользователь больше не является совладельцем.' });
   });
 
@@ -104,7 +104,7 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
       refill_products: !!permissions?.refill_products,
       delete_products: !!permissions?.delete_products,
     });
-    await notifyUser(fastify, targetUser.id, `fm_permissions_updated_${targetUser.id}`, 'Изменение прав в магазине', `Ваши права в магазине ${shop.name} были изменены`, '/cabinet');
+    await notifyUser(fastify, targetUser.id, 'Изменение прав в магазине', `Ваши права в магазине ${shop.name} были изменены`, '/cabinet', 'market_shop');
     return reply.send({ message: 'Права пользователя обновлены.' });
   });
 };

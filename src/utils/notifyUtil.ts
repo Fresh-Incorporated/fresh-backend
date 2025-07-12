@@ -41,28 +41,31 @@
 
 import { FastifyInstance } from 'fastify';
 import { Op } from 'sequelize';
-import {UserWebpush} from "../models/UserWebpush";
-import {User} from "../models/User";
+import { UserWebpush } from '../models/UserWebpush';
+import { User } from '../models/User';
+import { NotificationSettings } from '../models/NotificationSettings';
+import {v4 as uuidv4} from "uuid";
 
 interface NotificationPayload {
     title: string;
     body: string;
-    tag: string;
     url: string;
 }
 
-function buildNotification({ title, body, tag, url }: NotificationPayload) {
+const DEFAULT_ICON = '/logo.png';
+
+function buildNotification({ title, body, url }: NotificationPayload) {
     return {
         title,
         options: {
             body,
-            icon: '/logo.png',
-            badge: '/logo.png',
+            icon: DEFAULT_ICON,
+            badge: DEFAULT_ICON,
             vibrate: [200, 100, 200],
             timestamp: Date.now(),
             lang: 'ru-RU',
             dir: 'auto',
-            tag,
+            tag: uuidv4(),
             data: {
                 url: `${process.env.FRONTEND_URL}${url}`,
             },
@@ -70,30 +73,70 @@ function buildNotification({ title, body, tag, url }: NotificationPayload) {
     };
 }
 
+export type NotificationPermissionKey = 'market_shop' | 'market_delivered' | 'market_work' | 'priority';
+type Target = 'webpush' | 'discord';
+
 export async function notifyUser(
     fastify: FastifyInstance,
     userId: number,
-    tag: string,
     title: string,
     body: string,
-    url = '/'
+    url = '/',
+    permission: NotificationPermissionKey | null
 ): Promise<void> {
-    const subscriptions: UserWebpush[] = await UserWebpush.findAll({
-        where: {
-            userId,
-            enabled: true,
-        },
+    const settingsList = await NotificationSettings.findAll({
+        where: { userId },
     });
 
-    const payload = JSON.stringify(buildNotification({ title, body, tag, url }));
+    const settingsByTarget: Partial<Record<Target, NotificationSettings>> = {};
+    for (const setting of settingsList) {
+        settingsByTarget[setting.target as Target] = setting;
+    }
 
-    const results = await Promise.allSettled(
-        subscriptions.map((sub) => fastify.webpush.sendNotification(sub.data, payload))
-    );
+    // === Webpush ===
+    if (permission == null || settingsByTarget.webpush?.[permission]) {
+        const subscriptions = await UserWebpush.findAll({
+            where: { userId, enabled: true },
+        });
 
-    for (const result of results) {
-        if (result.status === 'rejected') {
-            console.error('Push error:', result.reason);
+        const payload = JSON.stringify(buildNotification({ title, body, url }));
+
+        const results = await Promise.allSettled(
+            subscriptions.map((sub) => fastify.webpush.sendNotification(sub.data, payload))
+        );
+
+        for (const result of results) {
+            if (result.status === 'rejected') {
+                console.error('Push error:', result.reason);
+            }
+        }
+    }
+
+    // === Discord ===
+    if (permission == null || settingsByTarget.discord?.[permission]) {
+        const user = await User.findOne({
+            where: { id: userId },
+            attributes: ['id', 'discordId'],
+        });
+
+        if (user?.discordId && fastify.discordBot.guild) {
+            try {
+                const guildMember = await fastify.discordBot.guild.members.fetch(user.discordId);
+                const dm = await guildMember.createDM();
+                await dm.send({
+                    embeds: [
+                        {
+                            title,
+                            description: body,
+                            url: `${process.env.FRONTEND_URL}${url}`,
+                            color: 0x0099ff,
+                            timestamp: new Date().toISOString(),
+                        },
+                    ],
+                });
+            } catch (err) {
+                console.error(`Ошибка отправки Discord DM пользователю ${user.discordId}:`, err);
+            }
         }
     }
 }
@@ -101,20 +144,16 @@ export async function notifyUser(
 export async function notifyWorkers(
     fastify: FastifyInstance,
     minFmWorker: number,
-    tag: string,
     title: string,
     body: string,
-    url = '/'
+    url = '/',
 ): Promise<void> {
-    const users: { id: number; fm_worker: number }[] = await User.findAll({
-        where: {
-            fm_worker: {
-                [Op.gte]: minFmWorker,
-            },
-        },
+    const users = await User.findAll({
+        where: { fm_worker: { [Op.gte]: minFmWorker } },
+        attributes: ['id'],
     });
 
-    for (const user of users) {
-        await notifyUser(fastify, user.id, tag, title, body, url);
-    }
+    await Promise.allSettled(
+        users.map((user) => notifyUser(fastify, user.id, title, body, url, 'market_work'))
+    );
 }

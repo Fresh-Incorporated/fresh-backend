@@ -123,7 +123,7 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
           tags: tagList.map(tag => tag.name),
         },
       } as any);
-      await notifyWorkers(fastify, 3, 'fm_secretary_product', 'Новая проверка', 'Проверьте товар', '/cabinet/freshmarket/work/secretary/verify/products');
+      await notifyWorkers(fastify, 3, 'Новая проверка', 'Проверьте товар', '/cabinet/freshmarket/work/secretary/verify/products');
       return reply.status(200).send({ message: 'Товар успешно создан.', product: newProduct });
     } catch (err) {
       console.error(err);

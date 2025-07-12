@@ -107,11 +107,10 @@ const route: FastifyPluginAsync = async (fastify): Promise<void> => {
       userId: user.id,
       orderId: order.id,
     } as any);
-    await notifyWorkers(
+    notifyWorkers(
       fastify,
       1,
-      'fm_delivery',
-      'Новая доставка',
+      'Новая доставка #' + order.id,
       'Доставьте его как можно скорей!',
       '/cabinet/freshmarket/work/delivery'
     );

@@ -5,6 +5,7 @@ import { Shop } from './Shop';
 import { BalanceHistory } from './BalanceHistory';
 import { UserWebpush } from './UserWebpush';
 import { ShopCoOwner } from './ShopCoOwner';
+import {NotificationSettings} from "./NotificationSettings";
 
 @Table({ tableName: 'users', timestamps: true })
 export class User extends Model<User> {
@@ -49,4 +50,7 @@ export class User extends Model<User> {
 
   @HasMany(() => ShopCoOwner, 'userId')
   declare co_owns: ShopCoOwner[];
+
+  @HasMany(() => NotificationSettings, 'userId')
+  declare notification_settings: NotificationSettings[];
 }

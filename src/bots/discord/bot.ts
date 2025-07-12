@@ -1,6 +1,6 @@
 import { Client, GatewayIntentBits } from 'discord.js'
 import { refreshDiscordSellers } from './common/sellerRoles'
-import type { FastifyInstance } from 'fastify'  // <-- Импорт только типов
+import type { FastifyInstance } from 'fastify'
 
 declare module 'discord.js' {
     interface Client {
@@ -34,6 +34,7 @@ client.on('ready', async () => {
 
 async function startBot(fastifyInstance: FastifyInstance): Promise<void> {
     client.fastify = fastifyInstance
+    fastifyInstance.discordBot = client
     const botSecret = process.env.DISCORD_BOT_SECRET
     if (!botSecret) {
         throw new Error('DISCORD_BOT_SECRET env variable is not set')

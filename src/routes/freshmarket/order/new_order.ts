@@ -130,7 +130,7 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
         value: -totalPrice,
       } as any, { transaction });
       await transaction.commit();
-      notifyWorkers(fastify, 2, 'fm_logic_collect', 'Новый заказ', 'Соберите его как можно скорей!', '/cabinet/freshmarket/work/logic/collect');
+      notifyWorkers(fastify, 2, 'Новый заказ #' + order?.id, 'Соберите его как можно скорей!', '/cabinet/freshmarket/work/logic/collect');
       return reply.status(200).send({ message: 'Заказ оформлен.' });
     } catch (error: any) {
       console.error(error);

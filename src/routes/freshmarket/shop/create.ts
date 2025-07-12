@@ -64,7 +64,7 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
         userId: request.user!.id,
         value: -price,
       } as any);
-      notifyWorkers(fastify, 3, 'fm_secretary_shop', 'Новая проверка', 'Проверьте магазин', '/cabinet/freshmarket/work/secretary/verify/shops');
+      notifyWorkers(fastify, 3, 'Новая проверка', 'Проверьте магазин', '/cabinet/freshmarket/work/secretary/verify/shops');
       return reply.status(200).send({
         message: 'Магазин успешно создан.',
         shop: newShop,

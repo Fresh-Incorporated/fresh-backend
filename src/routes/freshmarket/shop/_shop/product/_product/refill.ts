@@ -86,7 +86,7 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
       userId: user.id,
       productId: product.id,
     } as any);
-    await notifyWorkers(fastify, 2, 'fm_logic_refill', 'Новое пополнение', 'Пополните товар как можно скорей!', '/cabinet/freshmarket/work/logic/refill');
+    notifyWorkers(fastify, 2, 'Новое пополнение', 'Пополните товар как можно скорей!', '/cabinet/freshmarket/work/logic/refill');
     return reply.status(200).send({ message: 'Вы завершили пополнение! Ожидайте пока работники пополнят склад.' });
   });
 };

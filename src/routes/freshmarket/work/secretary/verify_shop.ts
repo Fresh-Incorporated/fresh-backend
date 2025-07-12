@@ -30,7 +30,7 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
       return reply.status(400).send({ message: 'Магазин не найден (Возможно уже проверен).' });
     }
     await shop.update({ verify_status: 1 });
-    await notifyUser(fastify, shop.ownerId, `fm_accepted_shop_${shop.id}`, 'Магазин подтверждён', `Магазин ${shop.name} подтверждён`, `/cabinet/freshmarket/shop/${shop.id}`);
+    await notifyUser(fastify, shop.ownerId, 'Магазин подтверждён', `Магазин ${shop.name} подтверждён`, `/cabinet/freshmarket/shop/${shop.id}`, 'market_shop');
     return reply.status(200).send({ message: 'Магазин подтверждён' });
   });
 
@@ -40,7 +40,7 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
       return reply.status(400).send({ message: 'Магазин не найден (Возможно уже проверен).' });
     }
     await shop.update({ verify_status: -1 });
-    await notifyUser(fastify, shop.ownerId, `fm_declined_shop_${shop.id}`, 'Магазин отклонён', `Магазин ${shop.name} отклонён`, `/cabinet/freshmarket/shop/${shop.id}`);
+    await notifyUser(fastify, shop.ownerId, 'Магазин отклонён', `Магазин ${shop.name} отклонён`, `/cabinet/freshmarket/shop/${shop.id}`, 'market_shop');
     return reply.status(200).send({ message: 'Магазин отклонён' });
   });
 

@@ -4,10 +4,12 @@ import { User } from "../src/models/User";
 import { Shop } from "../src/models/Shop";
 import {Product} from "../src/models/Product";
 import {ShopCoOwner} from "../src/models/ShopCoOwner";
+import {Client} from "discord.js";
 
 declare module 'fastify' {
     interface FastifyInstance {
         sequelize: Sequelize;
+        discordBot: Client;
         requireAuth: (req: FastifyRequest, rep: FastifyReply) => Promise<void>;
         requireShopAccess: (req: FastifyRequest, rep: FastifyReply) => Promise<void>;
         requireProductAccess: (req: FastifyRequest, rep: FastifyReply) => Promise<void>;

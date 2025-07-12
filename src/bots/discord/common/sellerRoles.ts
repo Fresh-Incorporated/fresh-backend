@@ -1,21 +1,10 @@
 import { Op } from 'sequelize'
 import type { Client, Guild, GuildMember } from 'discord.js'
-
-interface UserModel {
-    id: number
-    discordId: string | null
-}
-
-interface ShopModel {
-    ownerId: number
-}
-
-interface ShopCoOwnerModel {
-    userId: number
-}
+import {User} from "../../../models/User";
+import {Shop} from "../../../models/Shop";
+import {ShopCoOwner} from "../../../models/ShopCoOwner";
 
 async function refreshDiscordSellers(client: Client & { fastify?: any; guild?: Guild }): Promise<void> {
-    const { User, Shop, ShopCoOwner } = client.fastify.sequelize.models
     const guild = client.guild
     if (!guild) throw new Error('Guild is not set on client')
 
@@ -23,7 +12,7 @@ async function refreshDiscordSellers(client: Client & { fastify?: any; guild?: G
     if (!sellerRoleId) throw new Error('DISCORD_ROLE_SELLER env variable is not set')
 
     // Получаем всех пользователей с discordId
-    const users: UserModel[] = await User.findAll({
+    const users: User[] = await User.findAll({
         where: {
             discordId: { [Op.ne]: null }
         },
@@ -34,7 +23,7 @@ async function refreshDiscordSellers(client: Client & { fastify?: any; guild?: G
     const userMap = new Map(users.map(user => [user.id, user.discordId!]))
 
     // Собираем всех владельцев магазинов
-    const shopOwners: ShopModel[] = await Shop.findAll({
+    const shopOwners: Shop[] = await Shop.findAll({
         attributes: ['ownerId'],
         where: { enabled: true },
         raw: true
@@ -43,7 +32,7 @@ async function refreshDiscordSellers(client: Client & { fastify?: any; guild?: G
     const ownerIds = shopOwners.map(shop => shop.ownerId)
 
     // Собираем всех принятых совладельцев магазинов
-    const shopCoOwners: ShopCoOwnerModel[] = await ShopCoOwner.findAll({
+    const shopCoOwners: ShopCoOwner[] = await ShopCoOwner.findAll({
         attributes: ['userId'],
         where: {
             status: 'accepted'
