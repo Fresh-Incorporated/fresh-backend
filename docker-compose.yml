@@ -1,14 +1,9 @@
-version: "3.8"
-
 services:
-  freshmarket-backend:
-    image: freshmarket-backend:latest
-    restart: always
+  service:
+    build: .
+    restart: unless-stopped
+    pull_policy: build
+    env_file:
+      - stack.env
     ports:
-      - "13582:13582"
-    environment:
-      PROD: "true"
-      FASTIFY_PORT: "13582"
-      TRUST_PROXY: "true"
-      DATABASE_HOST: "213.171.9.157"
-    network_mode: "host"
+      - "${SERVER_PORT:-3000}:${FASTIFY_PORT:-3000}"
