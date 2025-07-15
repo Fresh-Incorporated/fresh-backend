@@ -99,9 +99,10 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
                 market_shop: setting.market_shop,
                 market_delivered: setting.market_delivered,
                 market_work: setting.market_work,
+                priority: setting.priority,
             };
             return acc;
-        }, {} as Record<string, { market_shop: boolean, market_delivered: boolean, market_work: boolean }>);
+        }, {} as Record<string, { market_shop: boolean, market_delivered: boolean, market_work: boolean, priority: boolean }>);
 
         return reply.status(200).send({ settings: formatted });
     });
