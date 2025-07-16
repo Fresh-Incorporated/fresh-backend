@@ -2,7 +2,7 @@ import { Table, Column, Model, ForeignKey } from 'sequelize-typescript';
 import { Product } from './Product';
 import { Tag } from './Tag';
 
-@Table({ tableName: 'product_tags', timestamps: false })
+@Table({ tableName: 'product_tags', timestamps: true })
 export class ProductTag extends Model<ProductTag> {
   @ForeignKey(() => Product)
   @Column
