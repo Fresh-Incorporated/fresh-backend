@@ -40,12 +40,14 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
       return reply.status(400).send({ message: 'Цена товара должна быть в пределах 0.01-1728.' });
     }
     let tagList: Tag[] = [];
-    if (tags && tags.split('_').length > 3) {
-      return reply.status(400).send({ message: 'Количество тегов должно быть не более 3х.' });
-    } else {
-      tagList = await Tag.findAll({ where: { id: tags.split('_') } });
-      if (tagList.length !== tags.split('_').length) {
-        return reply.status(400).send({ message: 'Некоторые теги не найдены. (Ты че, хакер?)' });
+    if (tags) {
+      if (tags.split('_').length > 3) {
+        return reply.status(400).send({ message: 'Количество тегов должно быть не более 3х.' });
+      } else {
+        tagList = await Tag.findAll({ where: { id: tags.split('_') } });
+        if (tagList.length !== tags.split('_').length) {
+          return reply.status(400).send({ message: 'Некоторые теги не найдены. (Ты че, хакер?)' });
+        }
       }
     }
     const products_count = await Product.count({ where: { shopId: shop.id } });
@@ -93,7 +95,7 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
         fileUrl = await uploadToS3(file, process.env.S3_BUCKET_NAME!, 'fresh/market/product_icon', true);
       }
     } catch (err) {
-      console.warn('Файл не был загружен, используется иконка по умолчанию.');
+      return reply.status(500).send({ message: 'Ошибка при загрузке изображения. Свяжитесь с администрацией!' });
     }
     try {
       const newProduct = await Product.create({
