@@ -12,7 +12,7 @@ const app: FastifyPluginAsync<AppOptions> = async (
     opts
 ): Promise<void> => {
 
-  const dir = './uploads';
+  const dir = join(__dirname, 'uploads');
   fs.mkdirSync(dir, { recursive: true });
 
   void fastify.register(AutoLoad, {
