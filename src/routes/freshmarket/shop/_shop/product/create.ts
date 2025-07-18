@@ -77,7 +77,8 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
     });
     let fileUrl = minecraft_icon ? `https://assets.zaralx.ru/api/v1/minecraft/vanilla/item/${minecraft_icon}/icon` : process.env.DEFAULT_SHOP_ICON;
     try {
-      if (request.body && (request.body as any).icon && ((request.body as any).minecraft_icon == null || (request.body as any).minecraft_icon?.length == 0)) {
+      console.log((request.body as any).minecraft_icon)
+      if (request.body && (request.body as any).icon && (minecraft_icon == null || minecraft_icon?.length == 0)) {
         const buffer = await (request.body as any).icon.toBuffer();
         const file = {
           filename: (request.body as any).icon.filename,
