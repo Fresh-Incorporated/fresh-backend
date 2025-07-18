@@ -20,8 +20,9 @@ export default fp(async function (fastify: FastifyInstance) {
         fastify.log.info('Connected to DB')
 
         fastify.log.info('Synchronizing tables...')
-        await sequelize.sync({ alter: false, force: false });
-        fastify.log.info('Tables sync successfully!')
+        sequelize.sync({ alter: false, force: false }).then(() => {
+            fastify.log.info('Tables sync successfully!')
+        })
 
         fastify.decorate('sequelize', sequelize);
     } catch (err) {

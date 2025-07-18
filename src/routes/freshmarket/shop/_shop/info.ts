@@ -68,6 +68,41 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
     }
     reply.send({ productLastSells: Object.values(salesHistory) });
   });
+
+  fastify.get('/sells/total', { preHandler: fastify.requireShopAccess }, async (request, reply) => {
+    if (!request.shop) return reply.status(400).send({ message: 'Магазин не найден.' });
+    const shop = await request.shop.reload({
+      attributes: ['id'],
+      include: [{ model: Product, as: 'products', attributes: ['id', 'name'], paranoid: false }]
+    });
+    const productIds: number[] = shop.products.map((p: any) => p.id);
+    const orders = await Order.findAll({
+      where: {
+        paid: true,
+        data: { $ne: null }
+      },
+      attributes: ['id', 'data', 'paid', 'createdAt'],
+    });
+    const salesHistory: Record<number, number> = {};
+    const products: Record<number, Product | Object> = {};
+    for (const order of orders) {
+      const orderProducts = (order.data as any).products || [];
+      for (const p of orderProducts) {
+        if (!productIds.includes(p.id)) continue;
+        if (!salesHistory[p.id]) {
+          salesHistory[p.id] = p.count;
+          const product = shop.products.find(pr => pr.id == p.id);
+          if (product) {
+            products[p.id] = product;
+          }
+        } else {
+          salesHistory[p.id] += p.count;
+        }
+      }
+    }
+
+    reply.send({ sells: salesHistory, products });
+  });
 };
 
 export default route;
