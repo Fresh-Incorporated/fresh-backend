@@ -7,6 +7,7 @@ import { Order } from '../../../models/Order';
 import { OrderHistory } from '../../../models/OrderHistory';
 import { Location } from '../../../models/Location';
 import { BalanceHistory } from '../../../models/BalanceHistory';
+import {Op} from "sequelize";
 
 const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
   fastify.post('/new/instant', {
@@ -20,6 +21,20 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
   }, async (request, reply) => {
     const { type, branch, products: rawProducts } = request.body as any;
     const { balance } = request.user!;
+
+    const availableOrdersCount = await Order.count({
+      where: {
+        customerId: request.user.id,
+        status: {
+          [Op.lte]: 4
+        }
+      }
+    })
+
+    if (availableOrdersCount > 7) {
+      return reply.status(400).send({ message: 'У вас оформлено слишком много заказов! Дождитесь существующих доставок.' });
+    }
+
     const products = rawProducts.map((product: any) => ({ ...product, count: parseInt(product?.count) }));
     if (type !== 'branch') {
       return reply.status(400).send({ message: 'Сейчас доступна доставка только в филиалы!' });
@@ -67,6 +82,9 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
     }
     if (totalSlots > 27) {
       return reply.status(500).send({ message: 'Слишком большой заказ! Мы временно не доставляем более 27 слотов.' });
+    }
+    if (totalPrice < 0.5) {
+      return reply.status(500).send({ message: 'Минимальная сумма заказа 0.5 АР.' });
     }
     if (balance < totalPrice) {
       if (totalPrice < 1728) {
