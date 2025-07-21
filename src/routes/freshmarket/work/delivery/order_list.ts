@@ -45,6 +45,10 @@ const route: FastifyPluginAsync = async (fastify): Promise<void> => {
           as: 'currentWorker',
         },
         {
+          model: User,
+          as: 'customer',
+        },
+        {
           model: LocationCell,
           as: 'deliverCell',
           include: [
