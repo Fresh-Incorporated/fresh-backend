@@ -7,7 +7,8 @@ import { Order } from '../../../models/Order';
 import { OrderHistory } from '../../../models/OrderHistory';
 import { Location } from '../../../models/Location';
 import { BalanceHistory } from '../../../models/BalanceHistory';
-import {Op} from "sequelize";
+import { Op } from "sequelize";
+import { User } from '../../../models/User';
 
 const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
   fastify.post('/new/instant', {
@@ -20,7 +21,7 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
     }
   }, async (request, reply) => {
     const { type, branch, products: rawProducts } = request.body as any;
-    const { balance } = request.user!;
+    // const { balance } = request.user!; // убираем, баланс будет проверяться в транзакции
 
     const availableOrdersCount = await Order.count({
       where: {
@@ -83,10 +84,13 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
     if (totalSlots > 27) {
       return reply.status(500).send({ message: 'Слишком большой заказ! Мы временно не доставляем более 27 слотов.' });
     }
-    if (totalPrice < 0.5) {
-      return reply.status(500).send({ message: 'Минимальная сумма заказа 0.5 АР.' });
+    // Проверка баланса теперь будет внутри транзакции
+    // if (balance < totalPrice) { ... }
+    if (totalPrice < 1) {
+      return reply.status(400).send({ message: 'Сумма заказа должна быть больше 0.' });
     }
-    if (balance < totalPrice) {
+    // Если не хватает средств, предлагаем пополнить (до транзакции, чтобы не грузить БД лишним)
+    if (request.user!.balance < totalPrice) {
       if (totalPrice < 1728) {
         const spwApi = new SPWorlds({ id: process.env.SPW_ID || '', token: process.env.SPW_TOKEN || '' });
         const pong = await spwApi.ping();
@@ -110,50 +114,76 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
         return reply.status(400).send({ message: 'Недостаточно средств, пополните баланс.' });
       }
     }
-    const transaction = await fastify.sequelize.transaction();
     try {
-      for (const product of products) {
-        const productRow = productRows.find(row => row.id === product.id);
-        if (!productRow) continue;
-        await Shop.increment({ balance: productRow.price * product.count * 0.9 }, {
-          where: { id: productRow.shopId },
-          transaction
+      await fastify.sequelize.transaction(async (t) => {
+        // Блокируем пользователя для атомарности
+        const user = await User.findOne({
+          where: { id: request.user!.id },
+          attributes: ['id', 'balance'],
+          lock: t.LOCK.UPDATE,
+          transaction: t
         });
-        product.price = productRow.price;
-        await productRow.decrement({ count: product.count }, { transaction });
-      }
-      await request.user!.decrement({ balance: totalPrice }, { transaction });
-      const order = await Order.create({
-        customerId: request.user!.id,
-        type,
-        price: totalPrice,
-        paid: true,
-        branchId: branch,
-        data: { products: products.map(({ id, count, price }: any) => ({ id, count, price })) },
-      } as any, { transaction });
-      await OrderHistory.create({
-        action_type: 'created',
-        orderId: order.id,
-        userId: request.user!.id
-      } as any, { transaction });
-      await OrderHistory.create({
-        action_type: 'paid',
-        orderId: order.id,
-        userId: request.user!.id
-      } as any, { transaction });
-      await BalanceHistory.create({
-        action_type: 'freshmarket_order',
-        message: 'Заказ на FreshMarket',
-        userId: request.user!.id,
-        value: -totalPrice,
-      } as any, { transaction });
-      await transaction.commit();
-      notifyWorkers(fastify, 2, 'Новый заказ #' + order?.id, 'Соберите его как можно скорей!', '/cabinet/freshmarket/work/logic/collect');
-      return reply.status(200).send({ message: 'Заказ оформлен.' });
+        if (!user) {
+          throw new Error('Пользователь не найден.');
+        }
+        if (user.balance < totalPrice) {
+          throw new Error('Недостаточно средств. Не хватает: ' + (totalPrice - user.balance));
+        }
+        // Списываем баланс
+        const [updatedRows] = await User.update(
+          { balance: user.balance - totalPrice },
+          { where: { id: user.id, balance: user.balance }, transaction: t }
+        );
+        if (updatedRows !== 1) {
+          throw new Error('Ошибка при списании средств. Попробуйте ещё раз.');
+        }
+        // Обработка товаров и магазинов
+        for (const product of products) {
+          const productRow = productRows.find(row => row.id === product.id);
+          if (!productRow) continue;
+          await Shop.increment({ balance: productRow.price * product.count * 0.9 }, {
+            where: { id: productRow.shopId },
+            transaction: t
+          });
+          product.price = productRow.price;
+          await productRow.decrement({ count: product.count }, { transaction: t });
+        }
+        // Создаём заказ
+        const order = await Order.create({
+          customerId: user.id,
+          type,
+          price: totalPrice,
+          paid: true,
+          branchId: branch,
+          data: { products: products.map(({ id, count, price }: any) => ({ id, count, price })) },
+        } as any, { transaction: t });
+        await OrderHistory.create({
+          action_type: 'created',
+          orderId: order.id,
+          userId: user.id
+        } as any, { transaction: t });
+        await OrderHistory.create({
+          action_type: 'paid',
+          orderId: order.id,
+          userId: user.id
+        } as any, { transaction: t });
+        await BalanceHistory.create({
+          action_type: 'freshmarket_order',
+          message: 'Заказ на FreshMarket',
+          userId: user.id,
+          value: -totalPrice,
+        } as any, { transaction: t });
+        // Уведомление после коммита
+        t.afterCommit(() => {
+          notifyWorkers(fastify, 2, 'Новый заказ #' + order?.id, 'Соберите его как можно скорей!', '/cabinet/freshmarket/work/logic/collect');
+        });
+        reply.status(200).send({ message: 'Заказ оформлен.' });
+      });
     } catch (error: any) {
-      console.error(error);
-      await transaction.rollback();
-      return reply.status(500).send({ message: 'Произошла ошибка при оформлении заказа.', error: error.message });
+      const message = error.message && error.message.startsWith('Недостаточно средств')
+        ? error.message
+        : 'Произошла ошибка при оформлении заказа.';
+      return reply.status(message.startsWith('Недостаточно средств') ? 402 : 500).send({ message });
     }
   });
 };

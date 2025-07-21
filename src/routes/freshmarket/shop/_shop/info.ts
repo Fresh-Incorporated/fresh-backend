@@ -73,7 +73,7 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
     if (!request.shop) return reply.status(400).send({ message: 'Магазин не найден.' });
     const shop = await request.shop.reload({
       attributes: ['id'],
-      include: [{ model: Product, as: 'products', attributes: ['id', 'name'], paranoid: false }]
+      include: [{ model: Product, as: 'products', attributes: ['id', 'name', 'color'], paranoid: false }]
     });
     const productIds: number[] = shop.products.map((p: any) => p.id);
     const orders = await Order.findAll({

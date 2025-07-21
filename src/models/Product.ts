@@ -59,6 +59,11 @@ export class Product extends Model<Product> {
   @Column(DataType.BOOLEAN)
   declare enabled: boolean;
 
+  @AllowNull(true) // for migration
+  @Default(() => `#${Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0')}`) // Random hex
+  @Column(DataType.STRING)
+  declare color: string;
+
   @ForeignKey(() => Shop)
   @AllowNull(false)
   @Column(DataType.INTEGER)
