@@ -44,7 +44,7 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
         { model: LocationCell, as: 'branchCell' },
       ],
       limit: 30,
-      order: [['id', 'DESC']],
+      order: [['id', 'ASC']],
     });
 
     const products = await Product.findAll({
