@@ -5,7 +5,7 @@ import { BalanceHistory } from '../../../../models/BalanceHistory';
 const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
   fastify.post('/withdraw', { preHandler: fastify.requireShopAccess }, async (request, reply) => {
     if (!request.isOwner) return reply.status(400).send({ message: 'Недостаточно прав.' });
-    const value = Math.floor(request.shop!.balance);
+    const value = request.shop!.balance;
     if (value < 10) {
       return reply.status(400).send({ message: 'Минимальная сумма вывода: 10 АР' });
     }
