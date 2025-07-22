@@ -72,7 +72,7 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
     }
     await order.update({
       status: 5,
-      branchCellId: undefined,
+      branchCellId: null as any,
     });
     await OrderHistory.create({
       action_type: 'confirmed',
