@@ -40,8 +40,8 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
     if (request.query.name && (request.query.name.length < 3 || request.query.name.length > 24)) {
       return reply.status(400).send({ message: 'Длина названия должна быть в пределах 3-24 символов.' });
     }
-    if (request.query.count && (request.query.count < 1 || request.query.count > 10000)) {
-      return reply.status(400).send({ message: 'Кол-во товара должно быть в пределах 1-10000 шт.' });
+    if (request.query.count && (request.query.count < 0 || request.query.count > 10000)) {
+      return reply.status(400).send({ message: 'Кол-во товара должно быть в пределах 0-10000 шт.' });
     }
     if (request.query.description && (request.query.description.length > 240)) {
       return reply.status(400).send({ message: 'Длина описания должна быть не более 240 символов.' });
