@@ -32,6 +32,8 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
   });
 
   fastify.get('/salary/generate', async (request, reply) => {
+    const percentages = { delivery: 0.3, logic: 0.45, secretary: 0.15, director: 0.1 }
+
     const lastCompleted = (await Salary.findOne({ limit: 1, order: [['completedAt', 'DESC']], attributes: ['completedAt'] })) || { completedAt: 0 };
     const ordersHistory = await OrderHistory.findAll({
       attributes: ['id', 'action_type', 'userId'],
@@ -76,14 +78,14 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
         }
       }
       if (history.action_type === 'collect_finished') {
-        const pay = history.order.price * 0.1 * 0.2;
+        const pay = history.order.price * 0.1 * (percentages.logic / 2);
         if (!salary.pays.logic) {
           salary.pays.logic = { pay };
         } else {
           salary.pays.logic.pay += pay;
         }
       } else if (history.action_type === 'deliver_finished') {
-        const pay = history.order.price * 0.1 * 0.2;
+        const pay = history.order.price * 0.1 * percentages.delivery;
         if (!salary.pays.deliver) {
           salary.pays.deliver = { pay };
         } else {
@@ -105,7 +107,7 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
       }
     }
     for (const refill of refillWorkers) {
-      const pay = (refill.count / sum) * (totalSalary * 0.2);
+      const pay = (refill.count / sum) * (totalSalary * (percentages.logic / 2));
       let salary = salaries.find(s => s.id === refill.id);
       if (!salary) {
         salary = { id: refill.id, pays: {} };
@@ -117,7 +119,7 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
         salary.pays.logic.pay += pay;
       }
     }
-    return reply.status(200).send({ totalSalary, salaries, endDatetime: Date.now() });
+    return reply.status(200).send({ totalSalary, salaries, endDatetime: Date.now(), percentages });
   });
 
   fastify.post('/salary/submit', async (request, reply) => {
