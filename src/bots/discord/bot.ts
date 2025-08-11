@@ -37,7 +37,7 @@ async function startBot(fastifyInstance: FastifyInstance): Promise<void> {
     fastifyInstance.discordBot = client
     const botSecret = process.env.DISCORD_BOT_SECRET
     if (!botSecret) {
-        throw new Error('DISCORD_BOT_SECRET env variable is not set')
+        return fastifyInstance.log.warn("DISCORD_BOT_SECRET env variable is not set! DISCORD BOT SKIPPED")
     }
     await client.login(botSecret)
 }
