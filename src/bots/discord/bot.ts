@@ -1,17 +1,22 @@
-import { Client, GatewayIntentBits } from 'discord.js'
+import {Client, Collection, GatewayIntentBits} from 'discord.js'
 import { refreshDiscordSellers } from './common/sellerRoles'
 import type { FastifyInstance } from 'fastify'
+import CommandsUtil from "./utils/CommandsUtil";
 
 declare module 'discord.js' {
     interface Client {
         fastify?: FastifyInstance
         guild?: Guild
+        commands: Collection<any, any>;
     }
 }
 
 const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers]
 })
+
+CommandsUtil.loadCommands(client)
+CommandsUtil.registerEvents(client)
 
 client.on('ready', async () => {
     if (!client.user) return
@@ -29,6 +34,7 @@ client.on('ready', async () => {
     const guild = await client.guilds.fetch(guildId)
     client.guild = guild
 
+    CommandsUtil.refreshCommands(client)
     await refreshDiscordSellers(client)
 })
 
