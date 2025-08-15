@@ -8,13 +8,16 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
   fastify.get('/products', async (request, reply) => {
     const query = request.query as any;
     const offset = query.offset || 0;
+    const min = query.min || 0;
+    const max = query.max || 10000;
     let defaultQuery: any = {
       offset: offset,
       limit: 30,
       where: {
         verify_status: 1,
         count: {
-          [Op.gt]: 0
+          [Op.gte]: min,
+          [Op.lte]: max
         },
         [Op.and]: [],
         enabled: true,
