@@ -37,7 +37,7 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
         }
       ],
       order: [],
-      attributes: ['id', 'name', 'description', 'icon', 'stack_count', 'slots_count', 'price', 'count', 'shopId'],
+      attributes: ['id', 'name', 'description', 'icon', 'stack_count', 'slots_count', 'price', 'count', 'shopId', 'createdAt'],
     };
     if (query.sort !== undefined) {
       switch (query.sort) {
@@ -46,6 +46,12 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
           break;
         case 'expensive':
           defaultQuery.order.push(['price', 'DESC']);
+          break;
+        case 'new':
+          defaultQuery.order.push(['createdAt', 'DESC']);
+          break;
+        case 'old':
+          defaultQuery.order.push(['createdAt', 'ASC']);
           break;
       }
     }
