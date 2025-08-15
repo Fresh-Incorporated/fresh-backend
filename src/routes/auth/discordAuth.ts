@@ -54,12 +54,24 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
 
           const { username, uuid } = spwUser
 
-          // Создаем нового пользователя
-          user = await User.create({
-            discordId: discordUserData.id,
-            nickname: username,
-            uuid: uuid,
-          } as any);
+          user = await User.findOne({
+            where: {
+              uuid: uuid
+            }
+          })
+
+          if (user) {
+            user.discordId = discordUserData.id
+            user.nickname = username
+            await user.save()
+          } else {
+            // Создаем нового пользователя
+            user = await User.create({
+              discordId: discordUserData.id,
+              nickname: username,
+              uuid: uuid,
+            } as any);
+          }
         } catch (err) {
           console.log(err);
           return reply.status(500).send({ message: 'Не получилось найти аккаунт SPWorlds' });

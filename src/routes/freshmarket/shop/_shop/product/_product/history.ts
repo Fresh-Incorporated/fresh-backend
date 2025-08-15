@@ -17,6 +17,7 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
         },
       ],
       limit: 100,
+      order: [['createdAt', 'DESC']],
     });
     return reply.status(200).send(history);
   });
