@@ -120,6 +120,7 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
             ]
           }
         ],
+        limit: 15
       });
       const productIds = new Set<number>();
       const ordersWithProducts = orders.map(order => {
