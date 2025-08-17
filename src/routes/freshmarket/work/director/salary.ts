@@ -32,9 +32,17 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
   });
 
   fastify.get('/salary/generate', async (request, reply) => {
-    const percentages = { delivery: 0.3, logic: 0.45, secretary: 0.15, director: 0.1 }
+    const percentages = { delivery: 0.3, logic: 0.45, secretary: 0.15, director: 0.1 };
 
-    const lastCompleted = (await Salary.findOne({ limit: 1, order: [['completedAt', 'DESC']], attributes: ['completedAt'] })) || { completedAt: 0 };
+    // Последняя завершённая выплата
+    const lastCompleted =
+        (await Salary.findOne({
+          limit: 1,
+          order: [['completedAt', 'DESC']],
+          attributes: ['completedAt'],
+        })) || { completedAt: 0 };
+
+    // История заказов (с момента последней выплаты)
     const ordersHistory = await OrderHistory.findAll({
       attributes: ['id', 'action_type', 'userId'],
       include: [
@@ -52,63 +60,90 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
         },
       ],
     });
+
+    // История пополнений
     const productRefills = await ProductHistory.findAll({
       where: { action_type: 'refill_completed', createdAt: { [Op.gt]: lastCompleted.completedAt } },
       attributes: ['id', 'action_type', 'userId', 'productId'],
-      include: [
-        { model: User, as: 'user', attributes: ['id', 'nickname', 'uuid', 'discordId'] },
-      ],
+      include: [{ model: User, as: 'user', attributes: ['id', 'nickname', 'uuid', 'discordId'] }],
     });
+
+    // --- общий фонд зарплаты (10% от заказов) ---
     let recordedOrders = new Set<number>();
     let totalSalary = 0;
     for (const orderHistory of ordersHistory as any[]) {
       if (!recordedOrders.has(orderHistory.order.id)) {
-        totalSalary = totalSalary + (orderHistory.order.price * 0.1);
+        totalSalary += orderHistory.order.price * 0.1;
         recordedOrders.add(orderHistory.order.id);
       }
     }
-    const salaries: any[] = [];
+
+    // --- распределение задач по пользователям ---
+    const taskCounters: Record<number, { deliver: number; logic: number }> = {};
+
     for (const history of ordersHistory as any[]) {
-      let salary;
       if (history.action_type === 'collect_finished' || history.action_type === 'deliver_finished') {
-        salary = salaries.find(s => s.id === history.user.id);
-        if (!salary) {
-          salary = { id: history.user.id, pays: {} };
-          salaries.push(salary);
+        if (!taskCounters[history.user.id]) {
+          taskCounters[history.user.id] = { deliver: 0, logic: 0 };
         }
-      }
-      if (history.action_type === 'collect_finished') {
-        const pay = history.order.price * 0.1 * (percentages.logic / 2);
-        if (!salary.pays.logic) {
-          salary.pays.logic = { pay };
-        } else {
-          salary.pays.logic.pay += pay;
-        }
-      } else if (history.action_type === 'deliver_finished') {
-        const pay = history.order.price * 0.1 * percentages.delivery;
-        if (!salary.pays.deliver) {
-          salary.pays.deliver = { pay };
-        } else {
-          salary.pays.deliver.pay += pay;
+
+        if (history.action_type === 'collect_finished') {
+          taskCounters[history.user.id].logic += 1;
+        } else if (history.action_type === 'deliver_finished') {
+          taskCounters[history.user.id].deliver += 1;
         }
       }
     }
+
+    // --- общее количество задач по ролям ---
+    let totalLogicTasks = 0;
+    let totalDeliverTasks = 0;
+
+    for (const userId in taskCounters) {
+      totalLogicTasks += taskCounters[userId].logic;
+      totalDeliverTasks += taskCounters[userId].deliver;
+    }
+
+    // --- распределение зарплаты ---
+    const salaries: any[] = [];
+
+    for (const userId in taskCounters) {
+      const userTasks = taskCounters[userId];
+      const salary: any = { id: Number(userId), pays: {} };
+
+      if (userTasks.logic > 0 && totalLogicTasks > 0) {
+        salary.pays.logic = {
+          pay: (userTasks.logic / totalLogicTasks) * (totalSalary * (percentages.logic / 2)),
+        };
+      }
+
+      if (userTasks.deliver > 0 && totalDeliverTasks > 0) {
+        salary.pays.deliver = {
+          pay: (userTasks.deliver / totalDeliverTasks) * (totalSalary * percentages.delivery),
+        };
+      }
+
+      salaries.push(salary);
+    }
+
+    // --- распределение за пополнения (refill) ---
     const refillWorkers: any[] = [];
-    let sum = 0;
+    let refillSum = 0;
+
     for (const history of productRefills as any[]) {
-      let refillWorker = refillWorkers.find(worker => worker.id === history.user.id);
+      let refillWorker = refillWorkers.find((worker) => worker.id === history.user.id);
       if (!refillWorker) {
         refillWorker = { id: history.user.id, count: 1 };
-        sum++;
         refillWorkers.push(refillWorker);
       } else {
         refillWorker.count++;
-        sum++;
       }
+      refillSum++;
     }
+
     for (const refill of refillWorkers) {
-      const pay = (refill.count / sum) * (totalSalary * (percentages.logic / 2));
-      let salary = salaries.find(s => s.id === refill.id);
+      const pay = (refill.count / refillSum) * (totalSalary * (percentages.logic / 2));
+      let salary = salaries.find((s) => s.id === refill.id);
       if (!salary) {
         salary = { id: refill.id, pays: {} };
         salaries.push(salary);
@@ -119,7 +154,13 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
         salary.pays.logic.pay += pay;
       }
     }
-    return reply.status(200).send({ totalSalary, salaries, endDatetime: Date.now(), percentages });
+
+    return reply.status(200).send({
+      totalSalary,
+      salaries,
+      endDatetime: Date.now(),
+      percentages,
+    });
   });
 
   fastify.post('/salary/submit', async (request, reply) => {
