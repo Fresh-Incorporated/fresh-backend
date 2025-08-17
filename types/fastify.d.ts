@@ -5,6 +5,7 @@ import { Shop } from "../src/models/Shop";
 import {Product} from "../src/models/Product";
 import {ShopCoOwner} from "../src/models/ShopCoOwner";
 import {Client} from "discord.js";
+import { WebSocket } from 'ws';
 
 declare module 'fastify' {
     interface FastifyInstance {
@@ -13,6 +14,7 @@ declare module 'fastify' {
         requireAuth: (req: FastifyRequest, rep: FastifyReply) => Promise<void>;
         requireShopAccess: (req: FastifyRequest, rep: FastifyReply) => Promise<void>;
         requireProductAccess: (req: FastifyRequest, rep: FastifyReply) => Promise<void>;
+        pixelwarsConnections: Map<number, WebSocket>;
     }
 
     interface FastifyRequest {
