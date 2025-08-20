@@ -1,4 +1,14 @@
-import {Table, Column, Model, PrimaryKey, AutoIncrement, DataType, AllowNull, BelongsTo} from 'sequelize-typescript';
+import {
+  Table,
+  Column,
+  Model,
+  PrimaryKey,
+  AutoIncrement,
+  DataType,
+  AllowNull,
+  BelongsTo,
+  ForeignKey
+} from 'sequelize-typescript';
 import {User} from "./User";
 
 @Table({ tableName: 'pw_pixels', timestamps: false })
@@ -19,6 +29,11 @@ export class PWPixel extends Model<PWPixel> {
   @AllowNull(false)
   @Column(DataType.STRING)
   declare type: "border" | "state";
+
+  @ForeignKey(() => User)
+  @AllowNull(true)
+  @Column(DataType.INTEGER)
+  declare ownerId: number;
 
   @BelongsTo(() => User, 'ownerId')
   declare owner: User;
