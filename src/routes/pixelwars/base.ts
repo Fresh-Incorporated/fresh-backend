@@ -9,7 +9,7 @@ const route: FastifyPluginAsync = async function (fastify, opts) {
         fastify.decorate('pixelwarsConnections', new Map<number, WebSocket>());
     }
 
-    fastify.get('/map', async function (request, reply) {
+    fastify.get('/map', { preHandler: fastify.requireAuth }, async function (request, reply) {
         return {
             borderPixels: await PWPixel.findAll({
                 where: {

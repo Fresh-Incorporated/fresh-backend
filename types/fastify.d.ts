@@ -6,6 +6,7 @@ import {Product} from "../src/models/Product";
 import {ShopCoOwner} from "../src/models/ShopCoOwner";
 import {Client} from "discord.js";
 import { WebSocket } from 'ws';
+import {Filter} from "bad-words";
 
 declare module 'fastify' {
     interface FastifyInstance {
@@ -15,6 +16,11 @@ declare module 'fastify' {
         requireShopAccess: (req: FastifyRequest, rep: FastifyReply) => Promise<void>;
         requireProductAccess: (req: FastifyRequest, rep: FastifyReply) => Promise<void>;
         pixelwarsConnections: Map<number, WebSocket>;
+        badWords: {
+            clean: (text: string) => string;
+            regex: RegExp;
+            words: string[];
+        };
     }
 
     interface FastifyRequest {

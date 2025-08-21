@@ -20,7 +20,7 @@ export default fp(async function (fastify: FastifyInstance) {
         fastify.log.info('Connected to DB')
 
         fastify.log.info('Synchronizing tables...')
-        sequelize.sync({ alter: false, force: false }).then(() => {
+        sequelize.sync({ alter: true, force: false }).then(() => {
             fastify.log.info('Tables sync successfully!')
         })
 

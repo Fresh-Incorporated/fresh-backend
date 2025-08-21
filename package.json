@@ -24,6 +24,7 @@
     "@fastify/sensible": "^6.0.2",
     "@fastify/websocket": "^11.2.0",
     "axios": "^1.7.7",
+    "bad-words": "^4.0.0",
     "date-fns": "^4.1.0",
     "discord-oauth2": "^2.12.1",
     "discord.js": "^14.21.0",

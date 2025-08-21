@@ -12,6 +12,7 @@ import { OrderHistory } from '../../../models/OrderHistory';
 import { LocationImage } from '../../../models/LocationImage';
 import { LocationCoordinate } from '../../../models/LocationCoordinate';
 import { startOfDay, subDays, format } from 'date-fns';
+import {PWClan} from "../../../models/PWClan";
 
 const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
   fastify.get('/', { preHandler: fastify.requireAuth }, async (request, reply) => {
@@ -30,9 +31,13 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
               attributes: ['id', 'icon', 'name', 'description']
             }
           ]
+        },
+        {
+          model: PWClan,
+          as: "pwClan"
         }
       ],
-      attributes: ['id', 'nickname', 'uuid', 'discordId', 'balance', 'bonuses', 'fm_worker', 'admin', 'createdAt'],
+      attributes: ['id', 'nickname', 'uuid', 'discordId', 'balance', 'bonuses', 'fm_worker', 'admin', 'createdAt', 'pwClanId'],
     });
 
     if (!user) {
