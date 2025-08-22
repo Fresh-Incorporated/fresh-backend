@@ -40,6 +40,13 @@ const route: FastifyPluginAsync = async function (fastify, opts) {
             await transaction.rollback()
         }
     });
+
+    fastify.get('/list', { preHandler: fastify.requireAuth }, async function (request, reply) {
+        const clans = await PWClan.findAll({
+
+        })
+        reply.status(200).send({ clans })
+    });
 };
 
 export default route;
