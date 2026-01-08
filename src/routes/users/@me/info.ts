@@ -125,6 +125,7 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
             ]
           }
         ],
+        order: [['id', 'DESC']],
         limit: 15
       });
       const productIds = new Set<number>();
