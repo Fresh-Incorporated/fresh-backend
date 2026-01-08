@@ -1,3 +1,7 @@
+/*
+ * Copyright © 2024–2026 zaralX
+ * Licensed under the GNU Affero General Public License v3.0
+ */
 import AutoLoad, { AutoloadPluginOptions } from '@fastify/autoload'
 import { FastifyPluginAsync, FastifyServerOptions } from 'fastify'
 import fs from 'fs'
@@ -31,6 +35,14 @@ const app: FastifyPluginAsync<AppOptions> = async (
       return reply.code(429).send({ message: 'Превышен лимит скорости. Попробуйте позже.'})
     }
     return reply.send(error)
+  })
+
+  fastify.addHook('onSend', async (_request, reply, payload) => {
+    reply.header(
+        'X-Source-Code',
+        'https://github.com/Fresh-Incorporated/fresh-backend'
+    )
+    return payload
   })
 }
 
