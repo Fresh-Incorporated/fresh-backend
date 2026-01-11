@@ -30,7 +30,7 @@ const app: FastifyPluginAsync<AppOptions> = async (
     options: Object.assign({}, opts)
   })
 
-  fastify.setErrorHandler(function (error, request, reply) {
+  fastify.setErrorHandler(function (error: any, request, reply) {
     if (error.statusCode === 429) {
       return reply.code(429).send({ message: 'Превышен лимит скорости. Попробуйте позже.'})
     }
