@@ -1,26 +1,27 @@
 import fp from 'fastify-plugin'
-import { FastifyPluginAsync } from 'fastify'
-import { JwtPayload } from 'jsonwebtoken'
+import {FastifyPluginAsync, FastifyReply, FastifyRequest} from 'fastify'
 import {User} from "../../models/User";
 import {Shop} from "../../models/Shop";
 import {PermissionKey, ShopCoOwner} from "../../models/ShopCoOwner";
 import {Product} from "../../models/Product";
 
 const accessControlPlugin: FastifyPluginAsync = async (fastify) => {
-    fastify.decorate('requireAuth', async function (request, reply) {
-        const accessToken = request.cookies.access_token
-        if (!accessToken) {
-            return reply.status(401).send({ error: 'Missing access token' })
+    fastify.decorate('requireAuth', async function (request: FastifyRequest, reply: FastifyReply) {
+        await request.jwtVerify();
+
+        const payloadUser: any = request.user;
+        console.log(payloadUser)
+        if (!payloadUser || typeof payloadUser.id === 'undefined' || payloadUser.id === null) {
+            return reply.status(401).send({message: 'Invalid token payload.'})
         }
 
-        const decoded = fastify.jwt.verify(accessToken) as JwtPayload
         const user = await User.findOne({
-            where: { id: decoded.id },
-            attributes: { exclude: ['updatedAt'] }
+            where: {id: payloadUser.id},
+            attributes: {exclude: ['updatedAt']}
         })
 
         if (!user) {
-            return reply.status(400).send({ message: 'Пользователь не найден.' })
+            return reply.status(400).send({message: 'Пользователь не найден.'})
         }
 
         request.user = user

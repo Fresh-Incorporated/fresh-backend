@@ -36,20 +36,6 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
       refresh_token: fastify.jwt.sign({ id: user.id, discordId: Number(user.discordId) || 0 }, { expiresIn: '30d' }),
     };
 
-    // Установка куков
-    reply.setCookie('access_token', tokens.access_token, {
-      maxAge: 60 * 15,
-      path: '/',
-      httpOnly: true,
-      secure: true,
-    });
-    reply.setCookie('refresh_token', tokens.refresh_token, {
-      maxAge: 60 * 60 * 24 * 30,
-      path: '/',
-      httpOnly: true,
-      secure: true,
-    });
-
     reply.send({ valid: valid, tokens })
   });
 };
