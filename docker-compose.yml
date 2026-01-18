@@ -3,6 +3,6 @@ services:
     image: ghcr.io/fresh-incorporated/fresh-backend:latest
     restart: unless-stopped
     env_file:
-      - stack.env
+      - .env
     ports:
       - "${SERVER_PORT:-3000}:${FASTIFY_PORT:-3000}"
